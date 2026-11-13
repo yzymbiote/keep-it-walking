@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Keep It Walking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a one-screen game. Thin instrument bar on top, the robot centre stage,
+   seven compact vitals beside it (a strip on phones), and one decision desk. Details live behind taps. */
+:root{
+  color-scheme:dark;
+  --bg:#0B0F17; --panel:#101826; --panel-2:#0E1522; --line:#1F2C40; --ink:#E6EDF7; --mute:#8A9BB4;
+  --cyan:#22D3EE; --red:#F87171; --green:#34D399; --amber:#FBBF24;
+  --display:"Chakra Petch","Avenir Next Condensed","Segoe UI",sans-serif;
+  --body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --c-brain:var(--green);--c-memory:var(--green);--c-nerves:var(--green);--c-power:var(--green);
+  --c-cooling:var(--green);--c-wiring:var(--green);--c-legs:var(--green);--c-eyes:var(--green);--glow:1;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.4;overflow:hidden}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+a{color:var(--cyan)}
+.app{height:100%;display:flex;flex-direction:column;gap:8px;padding:10px 12px 6px;max-width:1560px;margin:0 auto}
+
+/* top bar */
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:6px 22px}
+.brand{font-family:var(--display);font-weight:700;font-size:17px;line-height:1;margin:0;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap}
+.brand span{color:var(--cyan);text-shadow:0 0 14px rgba(34,211,238,.45)}
+.brand small{display:none;font-family:var(--body);font-weight:400;font-size:11.5px;letter-spacing:.08em;color:var(--mute);margin-left:10px}
+.gauges{display:flex;flex-wrap:wrap;gap:2px 14px;align-items:baseline;order:3;flex-basis:100%}
+.gauge{display:flex;align-items:baseline;gap:6px}
+.gauge small{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
+.gauge b{font-family:var(--display);font-weight:600;font-size:19px;line-height:1;font-variant-numeric:tabular-nums}
+.gauge b i{font-style:normal;font-size:12px;color:var(--mute);font-family:var(--mono);margin-left:2px}
+#g-week b{font-size:24px;color:var(--cyan)}
+.tools{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
+.mini{background:transparent;border:1px solid var(--line);border-radius:4px;padding:6px 9px;font-size:12.5px;color:var(--ink);min-height:32px;white-space:nowrap}
+.mini:hover{border-color:var(--cyan)}
+.timeline{order:4;flex-basis:100%}
+.track{position:relative;height:14px;display:flex;gap:2px}
+.track .wk{flex:1;background:#18233490;border-radius:1px}
+.track .wk.q{margin-left:4px}
+.track .wk.done{background:rgba(34,211,238,.38)}
+.track .wk.now{background:var(--cyan);box-shadow:0 0 10px var(--cyan)}
+.mk{position:absolute;top:50%;width:9px;height:9px;transform:translate(-50%,-50%) rotate(45deg);border:1.5px solid var(--mute);background:var(--bg)}
+.mk.past{border-color:var(--cyan);background:var(--cyan)}
+.mk.due{border-radius:50%;transform:translate(-50%,-50%);width:7px;height:7px;border-color:var(--amber)}
+.months{display:none;grid-template-columns:repeat(12,1fr);margin-top:4px;font-family:var(--mono);font-size:10px;color:var(--mute);letter-spacing:.06em}
+
+/* play area */
+.play{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px}
+.box{border:1px solid var(--line);background:var(--panel);border-radius:8px}
+.stage{flex:1;min-height:150px;position:relative;overflow:hidden;border:1px solid var(--line);border-radius:8px;--h:240px;
+  background:radial-gradient(120% 90% at 50% 100%,rgba(34,211,238,.10),transparent 60%),var(--panel-2)}
+.sky{position:absolute;left:0;right:0;bottom:calc(var(--h)*23/300);height:74px;opacity:.75;background-repeat:repeat-x;background-position:0 100%;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='74'%3E%3Cg fill='none' stroke='%231F2C40' stroke-width='1.5'%3E%3Crect x='10' y='34' width='96' height='40'/%3E%3Cpath d='M22 46h72M22 56h72M22 66h72'/%3E%3Cpath d='M150 74l12-60 12 60M152 34h20M148 24h28M162 14v-8'/%3E%3Crect x='214' y='22' width='70' height='52'/%3E%3Cpath d='M226 34h46M226 46h46M226 58h46'/%3E%3Crect x='320' y='44' width='78' height='30'/%3E%3Cpath d='M330 44v-10h14v10M352 44v-16h14v16'/%3E%3C/g%3E%3C/svg%3E")}
+.ground{position:absolute;left:0;right:0;bottom:0;height:calc(var(--h)*23/300);border-top:1.5px solid var(--cyan);
+  box-shadow:0 -1px 14px rgba(34,211,238,.35);
+  background-image:repeating-linear-gradient(90deg,rgba(34,211,238,.35) 0 2px,transparent 2px 46px);background-color:#0C121C}
+#bot{position:absolute;left:50%;bottom:0;height:var(--h);width:calc(var(--h)*.8);transform:translateX(-50%);overflow:visible}
+#bot .p,#bot .ln,#bot .dot,#bot .core{cursor:pointer}
+.symptoms{position:absolute;left:8px;top:8px;right:8px;display:flex;gap:5px;flex-wrap:wrap;pointer-events:none}
+.chip{font-family:var(--mono);font-size:11px;padding:2px 7px;border:1px solid var(--line);border-radius:3px;color:var(--mute);background:rgba(11,15,23,.7)}
+.chip.a{color:var(--amber);border-color:rgba(251,191,36,.45)} .chip.r{color:var(--red);border-color:rgba(248,113,113,.5)}
+.chip.g{color:var(--green);border-color:rgba(52,211,153,.4)}
+#lbl{position:absolute;right:8px;bottom:calc(var(--h)*23/300 + 8px);background:rgba(11,15,23,.75)}
+.say{position:absolute;left:calc(50% + var(--h)*.17);bottom:calc(var(--h)*.80);max-width:min(170px,34%);background:var(--ink);color:#0B0F17;font-size:13px;font-weight:500;line-height:1.25;padding:7px 10px;border-radius:10px 10px 10px 2px;opacity:0;transform:translateY(4px);transition:opacity .2s,transform .2s;pointer-events:none}
+.say.on{opacity:1;transform:none}
+
+/* robot */
+.shell{fill:url(#gShell);stroke:#4A6590;stroke-width:1.4}
+.shell.dk{fill:url(#gDk);stroke:#2A3A52}
+.glass{fill:#060A11;stroke:#2F4260;stroke-width:1.2}
+.rim{fill:none;stroke:var(--cyan);stroke-width:1.4;opacity:.75;stroke-linecap:round;filter:drop-shadow(0 0 3px var(--cyan))}
+.bolt{fill:#4A6590}
+.flow{stroke-dasharray:3 4;stroke-dashoffset:var(--flow,0)}
+.nflow{stroke-dasharray:2 5;stroke-dashoffset:var(--nflow,0)}
+.thin{stroke-width:1.3}
+.p{fill:color-mix(in srgb,var(--c) 20%,#0E1522);stroke:var(--c);stroke-width:1.5;transition:stroke .3s,fill .3s}
+.brain{--c:var(--c-brain)} .memory{--c:var(--c-memory)} .nerves{--c:var(--c-nerves)} .power{--c:var(--c-power)}
+.cooling{--c:var(--c-cooling)} .wiring{--c:var(--c-wiring)} .legs{--c:var(--c-legs)} .eyes{--c:var(--c-eyes)}
+.ln{fill:none;stroke:var(--c);stroke-width:2;stroke-linecap:round;transition:stroke .3s}
+.dot{fill:var(--c);stroke:none}
+.eye{fill:var(--cyan);filter:drop-shadow(0 0 4px var(--cyan))}
+.core{fill:var(--c);opacity:calc(.35 + .65*var(--glow));filter:drop-shadow(0 0 6px var(--c))}
+#bot[data-spot="brain"] .brain,#bot[data-spot="memory"] .memory,#bot[data-spot="nerves"] .nerves,#bot[data-spot="power"] .power,
+#bot[data-spot="cooling"] .cooling,#bot[data-spot="wiring"] .wiring,#bot[data-spot="legs"] .legs{filter:drop-shadow(0 0 5px #fff) drop-shadow(0 0 9px var(--c));stroke-width:2.4}
+#bot[data-spot="eyes"] .eyes{filter:drop-shadow(0 0 5px #fff) drop-shadow(0 0 9px var(--c));stroke-width:2.4}
+#labels line{stroke:var(--mute);stroke-width:.8}
+#labels text{font-family:var(--body);font-size:10px;font-weight:600;fill:var(--ink);paint-order:stroke;stroke:var(--panel-2);stroke-width:3px}
+#labels text.s{font-size:8.5px;font-weight:400;fill:var(--mute)}
+#bot.nolabels #labels,.stage.small #labels,.stage.small #lbl{display:none}
+
+/* vitals: a strip on phones, a column on wide screens */
+.vitals{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:3px}
+.vitals h2{display:none}
+.row{position:relative;display:grid;grid-template-areas:"nm" "bar" "val" "pip";gap:3px;padding:6px 3px;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:6px;min-width:0}
+.row:hover{border-color:var(--c)}
+.row .nm{grid-area:nm;font-size:9px;font-weight:600;white-space:nowrap;overflow:hidden;letter-spacing:-.01em}
+.row .nm .l,.row .nm em{display:none}
+.row .val{grid-area:val;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:12px;color:var(--c);line-height:1}
+.row .bar{grid-area:bar;height:5px;background:#18233A;border-radius:2px;overflow:hidden}
+.row .bar i{display:block;height:100%;background:var(--c);box-shadow:0 0 8px var(--c);transition:width .45s cubic-bezier(.2,.8,.2,1),background .3s}
+.row .delta{position:absolute;right:4px;top:-2px;font-family:var(--mono);font-size:12px;color:var(--red);opacity:0;pointer-events:none}
+.row.hit{animation:rowhit .7s} .row.hit .delta{animation:delta .9s}
+.row.up .delta{color:var(--green);animation:delta .9s}
+@keyframes rowhit{0%{background:rgba(248,113,113,.3);border-color:var(--red)}100%{background:var(--panel);border-color:var(--line)}}
+@keyframes delta{0%{opacity:1;transform:translateY(6px)}100%{opacity:0;transform:translateY(-10px)}}
+
+/* desk */
+.desk{flex:none;max-height:58%;overflow:auto;padding:12px 14px}
+.desk h3,.sheet h3{font-family:var(--display);font-weight:600;font-size:20px;line-height:1.15;margin:6px 0 8px;text-wrap:balance}
+.desk p,.sheet p{margin:0 0 10px;max-width:62ch}
+.tag{display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;padding:2px 8px;border-radius:3px;border:1px solid}
+.tag.real{color:var(--cyan);border-color:rgba(34,211,238,.5)} .tag.whatif{color:var(--amber);border-color:rgba(251,191,36,.5)}
+.tag.end{color:var(--red);border-color:rgba(248,113,113,.5)} .tag.win{color:var(--green);border-color:rgba(52,211,153,.5)}
+.plain{border:1px dashed rgba(251,191,36,.45);border-radius:5px;padding:8px 12px;background:rgba(251,191,36,.06);font-size:15px}
+.plain b,.tip b{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber);font-weight:500;margin-bottom:2px}
+.tip{border-left:2px solid var(--green);padding:4px 0 4px 10px;font-size:13px;color:var(--mute)} .tip b{color:var(--green)}
+.hits{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:var(--mute);margin-bottom:10px}
+.fact{border-left:2px solid var(--cyan);padding:5px 0 5px 12px;margin:10px 0 0;font-size:13px;background:linear-gradient(90deg,rgba(34,211,238,.07),transparent)}
+.fact b{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--cyan);display:block;margin-bottom:2px;font-weight:500}
+details.more{margin-top:10px;font-size:13.5px;color:var(--mute)}
+details.more summary{cursor:pointer;color:var(--ink);font-size:13px;padding:4px 0}
+details.more p{margin:6px 0 0}
+.opts{display:grid;grid-template-columns:1fr;gap:6px}
+.opt{text-align:left;background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:9px 11px;display:flex;flex-direction:column;gap:3px;min-height:44px}
+.opt:hover:not(:disabled){border-color:var(--cyan);background:#12202F}
+.opt:disabled{opacity:.45;cursor:not-allowed}
+.opt .top2{display:flex;justify-content:space-between;gap:10px;font-weight:600}
+.opt .cost{font-family:var(--mono);font-weight:500;color:var(--cyan);white-space:nowrap}
+.opt small{font-size:12.5px;color:var(--mute);line-height:1.3}
+.opt small b{color:var(--ink);font-weight:500}
+.btn{background:var(--cyan);color:#06222A;border:0;border-radius:6px;padding:10px 16px;font-family:var(--display);font-weight:600;font-size:15px;letter-spacing:.05em;text-transform:uppercase;min-height:44px}
+.btn:hover:not(:disabled){box-shadow:0 0 16px rgba(34,211,238,.6)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);font-family:var(--body);text-transform:none;letter-spacing:0;font-size:13.5px;font-weight:500}
+.btn.ghost:hover:not(:disabled){border-color:var(--cyan);box-shadow:none}
+.tick{font-family:var(--mono);font-size:12px;color:var(--mute);margin:0 0 8px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.walkrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.walkrow p{margin:0;flex:1 1 180px;color:var(--mute);font-size:13.5px}
+.stats{display:flex;gap:8px 22px;flex-wrap:wrap;margin:8px 0 10px}
+.stats div small{display:block;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
+.stats div b{font-family:var(--display);font-size:20px;font-weight:600}
+.scoreline{font-size:12.5px;color:var(--mute)}
+.pips{grid-area:pip;display:flex;gap:3px;align-items:center;height:6px}
+.pips i{width:9px;height:4px;border-radius:1px;background:#22304A} .pips i.on{background:var(--cyan);box-shadow:0 0 5px var(--cyan)}
+.pips u{text-decoration:none;font-family:var(--mono);font-size:10px;line-height:1;color:var(--red);font-weight:700}
+.radar{border:1px solid var(--line);border-radius:6px;padding:8px 11px;font-size:13.5px;color:var(--mute);margin:0 0 12px!important}
+.radar b{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:500;margin-bottom:2px}
+.radar.hot{border-color:rgba(251,191,36,.55);color:var(--ink);background:rgba(251,191,36,.06)} .radar.hot b{color:var(--amber)} .radar strong{color:var(--amber)}
+.dh{font-family:var(--display);font-weight:600;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);margin:0 0 6px}
+#storyfeed{margin-bottom:12px}
+@media (max-width:979px){#storyfeed li:nth-child(n+3){display:none} .radar{margin-bottom:8px!important}} #storyfeed li:first-child{color:var(--ink)}
+.echo{border-radius:5px;padding:7px 11px;font-size:13.5px} .echo b{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:500;margin-bottom:2px}
+.echo.good{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.4)} .echo.good b{color:var(--green)}
+.echo.bad{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.4)} .echo.bad b{color:var(--red)}
+.opt small.pos b{color:var(--green)} .opt small.neg b{color:var(--red)} .opt .mut{opacity:.7}
+.pos{color:var(--green)} .neg{color:var(--red)} .tip{margin-bottom:10px!important}
+.grades{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:8px 0 10px}
+.grades div{border:1px solid var(--line);border-radius:6px;padding:8px 9px;background:var(--panel-2);min-width:0}
+.grades small{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
+.grades b{display:block;font-size:13px;font-weight:600;margin:2px 0}
+.stars{color:var(--amber);letter-spacing:2px;font-size:15px}
+.verdict{border-left:2px solid var(--cyan);padding-left:10px}
+.toast{position:fixed;left:50%;top:14px;transform:translate(-50%,-140%);background:#1B1608;border:1px solid var(--amber);color:var(--ink);border-radius:8px;padding:9px 14px;font-size:13.5px;z-index:20;max-width:92%;transition:transform .35s cubic-bezier(.2,.9,.2,1);box-shadow:0 0 22px rgba(251,191,36,.35)}
+.toast.on{transform:translate(-50%,0)}
+.toast b{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);font-weight:500}
+.skill{border:1px solid rgba(251,191,36,.55);background:rgba(251,191,36,.07);border-radius:6px;padding:8px 11px;font-size:13.5px}
+.skill b{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);font-weight:500;margin-bottom:2px}
+.skill strong{font-family:var(--display);font-size:16px;font-weight:600;display:block}
+.skill.missed{border-color:var(--line);background:transparent;color:var(--mute)} .skill.missed b{color:var(--mute)}
+.skgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.skgrid .skill{margin:0} .skgrid .skill.lock strong{color:var(--mute)}
+.skgrid .skill.lock{border-style:dashed;border-color:var(--line);background:transparent;color:var(--mute)} .skgrid .skill.lock b{color:var(--mute)}
+.sheet.wide{max-width:760px}
+.pips i.pend{background:transparent;border:1px dashed var(--cyan)}
+.mk.due.ok{border-color:var(--green)}
+#map{width:100%;height:auto;display:block;max-height:62vh}
+#map .nd{cursor:pointer} #map .nd rect{fill:var(--panel-2);stroke:var(--c);stroke-width:1.6}
+#map .nd text{font-family:var(--body);font-size:12px;font-weight:600;fill:var(--ink)} #map .nd text.s{font-size:10px;font-weight:400;fill:var(--mute)}
+#map .nd text.v{font-family:var(--mono);font-size:12px;fill:var(--c);font-weight:500}
+#map .ed{fill:none;stroke:#3A4F6B;stroke-width:1.6} #map .ed.hot{stroke:var(--red);stroke-width:2.4}
+#map .nd.hot rect{stroke-width:3;filter:drop-shadow(0 0 6px var(--c))}
+.linkbtn{background:none;border:0;color:var(--cyan);padding:0;font-size:13px;text-decoration:underline;cursor:pointer}
+@media (max-width:420px){.brand{font-size:15px}.mini{padding:6px 7px}}
+.share{border:1px solid var(--cyan);border-radius:8px;padding:10px 12px;margin:12px 0 4px;background:linear-gradient(160deg,rgba(34,211,238,.10),transparent 60%)}
+.share>b{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);font-weight:500;margin-bottom:6px}
+.share pre{margin:0 0 10px;font-family:var(--mono);font-size:12px;line-height:1.5;white-space:pre-wrap;color:var(--ink);user-select:all}
+.pop{position:fixed;left:50%;top:42%;width:min(340px,86vw);transform:translate(-50%,-50%) scale(.88);opacity:0;pointer-events:none;z-index:30;text-align:center;
+  background:#17130A;border:1.5px solid var(--amber);border-radius:14px;padding:18px 18px 16px;box-shadow:0 0 0 100vmax rgba(5,8,13,.35),0 0 40px rgba(251,191,36,.45);transition:opacity .25s,transform .3s cubic-bezier(.2,1.3,.3,1);cursor:pointer}
+.pop.on{opacity:1;transform:translate(-50%,-50%) scale(1);pointer-events:auto}
+.pop span{display:block;font-size:34px;line-height:1;color:var(--amber);text-shadow:0 0 18px var(--amber)}
+.pop b{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);font-weight:500;margin:8px 0 4px}
+.pop strong{display:block;font-family:var(--display);font-size:22px;font-weight:600;line-height:1.15}
+.pop em{display:block;font-style:normal;font-size:13.5px;color:var(--mute);margin-top:6px}
+.real{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.real li{border-left:2px solid var(--cyan);padding-left:12px;font-size:13.5px}
+.real li.out{border-left-color:var(--line)}
+.real small{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--cyan);text-transform:uppercase}
+.real li.out small{color:var(--mute)}
+.real b{display:block;font-size:15px}
+.setrow{display:flex;gap:8px;flex-wrap:wrap}
+.sbbox{border:1px solid var(--amber);border-radius:8px;padding:10px 12px;margin:12px 0 4px;background:linear-gradient(160deg,rgba(251,191,36,.08),transparent 60%)}
+.sbbox[hidden]{display:none}
+.sbbox>b,.sbgrid h4{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);font-weight:500;margin:0 0 6px}
+.sbbox input{flex:1 1 140px;min-width:0;min-height:44px;background:var(--panel-2);border:1px solid var(--line);border-radius:6px;color:var(--ink);font:inherit;padding:0 12px}
+.sb{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:13px}
+.sb li{display:grid;grid-template-columns:22px 1fr auto;gap:8px;padding:4px 8px;border-radius:4px;background:var(--panel-2)}
+.sb li span{color:var(--mute)} .sb li b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .sb li i{font-style:normal;color:var(--amber)}
+.sb li.you{outline:1px solid var(--cyan)} .sb li.you b{color:var(--cyan)}
+.sbgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+footer{color:var(--mute);font-size:11px;text-align:center;line-height:1.2}
+
+/* sheets */
+.scrim{position:fixed;inset:0;background:rgba(5,8,13,.66);display:flex;align-items:flex-end;justify-content:center;z-index:10}
+.scrim[hidden]{display:none}
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:14px 14px 0 0;width:100%;max-width:560px;max-height:84%;overflow:auto;padding:16px}
+.sheethead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.sheethead h3{margin-top:0} .sheethead h3 em{font-style:normal;font-family:var(--body);font-weight:400;font-size:14px;color:var(--mute);margin-left:6px}
+.sheet h4{font-family:var(--display);font-weight:600;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);margin:14px 0 6px}
+.mute{color:var(--mute);font-size:13.5px}
+.bigbar{height:10px;background:#18233A;border-radius:3px;overflow:hidden;margin:4px 0 4px}
+.bigbar i{display:block;height:100%;background:var(--c);box-shadow:0 0 8px var(--c)}
+.hp{font-family:var(--mono);font-size:13px;color:var(--c)}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:12px;counter-reset:s}
+.steps li{counter-increment:s;display:grid;grid-template-columns:28px 1fr;gap:8px;font-size:13.5px;color:var(--mute)}
+.steps li::before{content:counter(s);font-family:var(--display);font-weight:700;font-size:22px;line-height:1;color:var(--cyan)}
+.steps b{display:block;color:var(--ink);font-weight:600;font-size:14.5px;margin-bottom:2px}
+.key{display:inline-flex;align-items:center;gap:5px;margin-right:10px;white-space:nowrap}
+.key i{width:9px;height:9px;border-radius:2px;display:inline-block}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--mute)}
+.legend i{display:inline-block;width:8px;height:8px;margin-right:6px;border:1.5px solid var(--mute)}
+.legend i.d{transform:rotate(45deg)} .legend i.o{border-radius:50%;border-color:var(--amber)}
+.loglist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:13px}
+.loglist li{display:grid;grid-template-columns:44px 1fr;gap:8px;color:var(--mute)}
+.loglist li span{font-family:var(--mono);font-size:11.5px;padding-top:1px}
+
+@media (min-width:700px){
+  .scrim{align-items:center} .sheet{border-radius:12px}
+  .months{display:grid}
+  .brand{font-size:21px} .brand small{display:inline}
+  .gauges{order:0;flex-basis:auto;gap:24px;margin-left:auto} .tools{margin-left:0}
+  .gauge b{font-size:22px} #g-week b{font-size:30px}
+}
+@media (min-width:980px){
+  .app{padding:14px 18px 8px;gap:10px}
+  .play{display:grid;grid-template-columns:230px minmax(0,1fr) 390px;grid-template-rows:minmax(0,1fr);gap:12px}
+  .vitals{order:-1;display:flex;flex-direction:column;gap:5px;overflow:auto}
+  .vitals h2{display:block;font-family:var(--display);font-weight:600;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);margin:2px 0 2px}
+  .vitals h2 small{display:block;font-family:var(--body);font-weight:400;letter-spacing:0;text-transform:none;font-size:12px;margin-top:2px}
+  .row{grid-template-areas:"nm val" "bar bar" "pip pip";grid-template-columns:1fr auto;gap:5px 8px;padding:8px 11px}
+  .row .nm{font-size:14px} .row .nm .s{display:none} .row .nm .l{display:inline}
+  .row .nm em{display:inline;font-style:normal;font-weight:400;font-size:12px;color:var(--mute);margin-left:7px}
+  .row .val{font-size:15px;align-self:center} .row .bar{height:7px}
+  .desk{max-height:none;padding:16px;align-self:stretch}
+  .desk h3{font-size:23px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <h1 class="brand">Keep It <span>Walking</span><small>The AI supply chain survival game</small></h1>
+    <div class="gauges">
+      <div class="gauge" id="g-week"><small>Week</small><b><span id="wk">00</span><i>/52</i></b></div>
+      <div class="gauge"><small>Budget</small><b id="bd">100</b></div>
+      <div class="gauge"><small>Spent</small><b id="sp">0</b></div>
+      <div class="gauge"><small>Resilience</small><b><span id="rs">0</span><i>%</i></b></div>
+    </div>
+    <div class="tools">
+      <button class="mini" id="sndbtn" aria-pressed="true">Sound on</button><button class="mini" id="sbbtn" hidden>Scores</button><button class="mini" id="helpbtn">Menu</button><button class="mini" id="skbtn">Skills <span id="skn">0</span>/<span id="skt">23</span></button>
+    </div>
+    <section class="timeline" aria-label="Timeline of the year">
+      <div class="track" id="track"></div>
+      <div class="months"><span>JAN</span><span>FEB</span><span>MAR</span><span>APR</span><span>MAY</span><span>JUN</span><span>JUL</span><span>AUG</span><span>SEP</span><span>OCT</span><span>NOV</span><span>DEC</span></div>
+    </section>
+  </header>
+  <main class="play">
+    <section class="stage" id="stage" aria-label="The robot">
+      <div class="sky" id="sky"></div>
+      <div class="ground" id="ground"></div>
+      <svg id="bot" viewBox="0 0 240 300" role="img" aria-label="A robot whose body parts stand for the things AI needs to run">
+          <defs>
+            <linearGradient id="gShell" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2A3F63"/><stop offset=".5" stop-color="#141E30"/><stop offset="1" stop-color="#0A1019"/></linearGradient>
+            <linearGradient id="gDk" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#172339"/><stop offset="1" stop-color="#090E16"/></linearGradient>
+          </defs>
+          <ellipse cx="124" cy="280" rx="50" ry="4.5" fill="#000" opacity=".55"/>
+          <g id="rig">
+            <!-- back arm -->
+            <g id="armB"><rect class="shell dk" x="99" y="90" width="10" height="44" rx="5"/>
+              <g id="foreB"><rect class="shell dk" x="99.5" y="126" width="9" height="38" rx="4.5"/><path class="shell dk" d="M99 161h10v5q-5 6-10 0z"/></g></g>
+            <!-- back leg -->
+            <g id="thighB" opacity=".62"><path class="p legs" d="M106 176q8-6 16 0l-1 46q-7 6-14 0z"/>
+              <g id="shinB"><path class="p legs" d="M108 226h12l-1.5 40h-9z"/><circle class="shell dk" cx="114" cy="228" r="6"/><path class="p legs" d="M105 266h14l13 6q2 5-3 5h-24z"/></g></g>
+            <!-- front leg -->
+            <g id="thighF"><path class="p legs" d="M118 176q8-6 16 0l-1 46q-7 6-14 0z"/>
+              <path class="ln legs thin" d="M121.5 190h5M121.5 197h5M121.5 204h5M121.5 211h5"/>
+              <circle class="dot legs rack" cx="130" cy="190" r="1.2"/><circle class="dot legs rack" cx="130" cy="197" r="1.2"/><circle class="dot legs rack" cx="130" cy="204" r="1.2"/><circle class="dot legs rack" cx="130" cy="211" r="1.2"/>
+              <g id="shinF"><path class="p legs" d="M120 226h12l-1.5 40h-9z"/>
+                <path class="ln wiring flow" d="M126 236v26"/>
+                <path class="ln legs thin" d="M131.5 232l3 4v20l-3 4" opacity=".7"/>
+                <circle class="shell" cx="126" cy="228" r="6.5"/><circle class="dot legs" cx="126" cy="228" r="2.2"/>
+                <path class="p legs" d="M117 266h14l14 6q2 5-3 5h-25z"/><path class="ln legs thin" d="M121 272h16"/></g></g>
+            <g id="upper">
+              <!-- cooling: fan pack on the back -->
+              <path class="ln cooling" d="M66 98v-8M72 98v-11M78 98v-8"/>
+              <path class="ln cooling thin" d="M83 108q9-16 28-20" opacity=".8"/>
+              <rect class="p cooling" x="60" y="98" width="23" height="64" rx="5"/>
+              <circle class="ln cooling thin" cx="71.5" cy="115" r="8.5"/>
+              <g id="fan"><path class="ln cooling" d="M71.5 115v-7M71.5 115l6 3.5M71.5 115l-6 3.5"/></g>
+              <circle class="dot cooling" cx="71.5" cy="115" r="1.8"/>
+              <path class="ln cooling thin" d="M65 132h13M65 138h13M65 144h13M65 150h13M65 156h13"/>
+              <!-- torso and pelvis -->
+              <path class="shell" d="M92 170H150L146 188Q121 197 96 188Z"/>
+              <path class="shell" d="M96 84H146Q160 84 160 98V140Q160 154 152 162L148 173H94L90 162Q82 154 82 140V98Q82 84 96 84Z"/>
+              <path class="rim" d="M148 84.5Q159.5 85 159.5 98V138"/>
+              <circle class="bolt" cx="88" cy="96" r="1.3"/><circle class="bolt" cx="100" cy="168" r="1.3"/><circle class="bolt" cx="142" cy="168" r="1.3"/>
+              <circle class="shell" cx="121" cy="183" r="7.5"/><circle class="dot legs" cx="121" cy="183" r="2.5"/>
+              <!-- nervous system: spine and nerve branches -->
+              <path class="ln nerves nflow thin" d="M92 80V168M95 108h13M95 132h15M92 168q6 12 24 14"/>
+              <g class="nerves"><rect class="p nerves" x="88" y="90" width="7.5" height="8" rx="2"/><rect class="p nerves" x="88" y="102" width="7.5" height="8" rx="2"/><rect class="p nerves" x="88" y="114" width="7.5" height="8" rx="2"/><rect class="p nerves" x="88" y="126" width="7.5" height="8" rx="2"/><rect class="p nerves" x="88" y="138" width="7.5" height="8" rx="2"/><rect class="p nerves" x="88" y="150" width="7.5" height="8" rx="2"/></g>
+              <!-- chest window -->
+              <rect class="glass" x="113" y="90" width="42" height="74" rx="9"/>
+              <!-- memory: stacked layers with activity lights -->
+              <g><rect class="p memory" x="119" y="95" width="25" height="3.4" rx="1"/><rect class="p memory" x="119" y="99.6" width="25" height="3.4" rx="1"/><rect class="p memory" x="119" y="104.2" width="25" height="3.4" rx="1"/><rect class="p memory" x="119" y="108.8" width="25" height="3.4" rx="1"/><rect class="p memory" x="119" y="113.4" width="25" height="3.4" rx="1"/><rect class="p memory" x="119" y="118" width="25" height="3.4" rx="1"/>
+                <path class="ln memory thin" d="M124 95v26M131.5 95v26M139 95v26" opacity=".55"/>
+                <circle class="dot memory memled" cx="149" cy="96.7" r="1.4"/><circle class="dot memory memled" cx="149" cy="101.3" r="1.4"/><circle class="dot memory memled" cx="149" cy="105.9" r="1.4"/><circle class="dot memory memled" cx="149" cy="110.5" r="1.4"/><circle class="dot memory memled" cx="149" cy="115.1" r="1.4"/><circle class="dot memory memled" cx="149" cy="119.7" r="1.4"/></g>
+              <!-- power core: reactor -->
+              <path class="ln power thin" d="M134 124v4M134 158v5M117 143h3M148 143h4"/>
+              <circle class="p power" cx="134" cy="143" r="14"/>
+              <circle class="ln power" id="ringp" cx="134" cy="143" r="10.5" style="stroke-dasharray:5 6;stroke-width:1.6"/>
+              <circle class="core power" id="core" cx="134" cy="143" r="6"/>
+              <!-- head -->
+              <g id="head">
+                <rect class="shell dk" x="113" y="68" width="14" height="18" rx="3"/><path class="ln nerves thin" d="M116 72v12M124 72v12" opacity=".7"/>
+                <path class="shell" d="M100 22H136Q154 22 154 40V56Q154 66 144 68L134 75H104Q90 75 90 61V32Q90 22 100 22Z"/>
+                <path class="rim" d="M138 22.5Q153.5 23 153.5 40"/>
+                <path class="ln brain" d="M104 22v-11"/><circle class="dot brain" id="ant" cx="104" cy="9" r="3.2"/>
+                <rect class="glass" x="95" y="27" width="26" height="26" rx="5"/>
+                <rect class="p brain" x="100" y="32" width="16" height="16" rx="2"/><rect class="dot brain" id="die" x="104.5" y="36.5" width="7" height="7" rx="1"/>
+                <path class="ln brain thin" d="M103 32v-3M108 32v-3M113 32v-3M103 48v3M108 48v3M113 48v3M100 36h-3M100 40h-3M100 44h-3M116 36h3M116 40h3M116 44h3"/>
+                <circle class="shell dk" cx="107" cy="63" r="5"/><circle cx="107" cy="63" r="1.8" fill="#22D3EE" opacity=".8"/>
+                <path class="p eyes" style="fill:#04070C" d="M126 36H149Q153 36 153 40V50Q153 54 149 54H130Q126 54 126 50Z"/>
+                <rect class="eye" id="eye" x="131" y="42" width="18" height="6" rx="3"/>
+                <path d="M133 61h13M133 65h10" stroke="#4A6590" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+              </g>
+              <!-- front arm -->
+              <g id="armF"><rect class="shell" x="99.5" y="92" width="10" height="42" rx="5"/><path class="ln wiring flow" d="M104.5 102v26"/>
+                <g id="foreF"><rect class="shell" x="100" y="128" width="9" height="36" rx="4.5"/><path class="ln wiring flow" d="M104.5 136v22"/><circle class="shell" cx="104.5" cy="131" r="5"/><circle class="dot wiring" cx="104.5" cy="131" r="1.8"/><path class="shell" d="M99 161h11v5q-5.5 7-11 0z"/></g>
+                <path class="shell" d="M91 98q1-13 13.500-13q12.500 0 13.500 13z"/><circle class="p wiring" cx="104.5" cy="94" r="3.6"/></g>
+            </g>
+            <g id="labels" aria-hidden="true">
+              <line x1="95" y1="38" x2="46" y2="38"/><text x="42" y="37" text-anchor="end">Brain</text><text class="s" x="42" y="47" text-anchor="end">AI chips</text>
+              <line x1="60" y1="118" x2="46" y2="118"/><text x="42" y="117" text-anchor="end">Cooling</text><text class="s" x="42" y="127" text-anchor="end">helium</text>
+              <line x1="93" y1="176" x2="46" y2="176"/><text x="42" y="175" text-anchor="end">Nervous system</text><text class="s" x="42" y="185" text-anchor="end">chip packaging</text>
+              <line x1="120" y1="250" x2="46" y2="250"/><text x="42" y="249" text-anchor="end">Wiring</text><text class="s" x="42" y="259" text-anchor="end">copper</text>
+              <line x1="151" y1="106" x2="194" y2="106"/><text x="198" y="105">Memory</text><text class="s" x="198" y="115">fast memory (HBM)</text>
+              <line x1="148" y1="143" x2="194" y2="143"/><text x="198" y="142">Power core</text><text class="s" x="198" y="152">transformers</text>
+              <line x1="153" y1="45" x2="194" y2="45"/><text x="198" y="44">Eyes</text><text class="s" x="198" y="54">chip machines</text>
+              <line x1="134" y1="205" x2="194" y2="205"/><text x="198" y="204">Legs</text><text class="s" x="198" y="214">data centers</text>
+            </g>
+            <g id="rip"></g>
+          </g>
+          <g id="fx"></g>
+        </svg>
+      <div class="symptoms" id="symptoms" aria-live="polite"></div>
+      <div class="say" id="say" aria-hidden="true"></div>
+      <button class="mini" id="lbl" aria-pressed="true">Hide labels</button>
+    </section>
+    <section class="vitals" id="rows" aria-label="Body parts"></section>
+    <section class="box desk" id="desk" aria-live="polite"></section>
+  </main>
+  <footer>A game about real supply chains. Not investment advice.</footer>
+</div>
+<div class="pop" id="pop" role="status"></div>
+<div class="scrim" id="scrim" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const NS = 'http://www.w3.org/2000/svg';
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+// Address of the scoreboard service. Leave empty to switch the shared scoreboard off.
+const SCORE_API = '';
+
+/*DATA*/
+const PARTS = [
+  {id:'brain', short:'Brain',  name:'Brain',          what:'AI chips',        who:'The chips that do the thinking. Nvidia, AMD, Broadcom design them; TSMC makes them.', at:[108,40]},
+  {id:'memory', short:'Memory', name:'Memory',         what:'fast memory (HBM)', who:'Special memory that sits beside each AI chip. SK hynix, Samsung, Micron.', at:[132,108]},
+  {id:'nerves', short:'Nerves', name:'Nervous system', what:'chip packaging',  who:'The base layers that connect a chip to everything else. TSMC CoWoS, Ajinomoto ABF film, Ibiden.', at:[92,130]},
+  {id:'power', short:'Power',  name:'Power core',     what:'transformers',    who:'The heavy gear that brings electricity in. GE Vernova, Hitachi, Siemens Energy.', at:[134,143]},
+  {id:'cooling', short:'Cooling',name:'Cooling',        what:'helium and chillers', who:'Helium gas for chip factories, plus cooling for the buildings. Vertiv.', at:[71,124]},
+  {id:'wiring', short:'Wiring', name:'Wiring',         what:'copper',          who:'Copper is in every cable and coil. Freeport-McMoRan.', at:[104.5,112]},
+  {id:'eyes', short:'Eyes',   name:'Eyes',           what:'chip-making machines', who:'The machines that print the patterns on chips. One company, ASML, is the only maker of the most advanced ones.', at:[140,45]},
+  {id:'legs', short:'Legs',   name:'Legs',           what:'data centers',    who:'The buildings where AI actually runs. Every shortage ends up here.', at:[126,205]},
+];
+const P = Object.fromEntries(PARTS.map(p => [p.id,p]));
+const EDGES = {cooling:['memory'], memory:['brain'], brain:['legs'], power:['cooling','legs'], wiring:['power','nerves'], nerves:['brain'], eyes:['brain','memory'], legs:[]};
+const REGEN = 1, SPILL = 0.45, WEEK_MS = 1150, SPOT_COST = 20, SPOT_GAIN = 12;
+
+const TODAY = new Date().toISOString().slice(0,10);
+const MODES = {
+  easy:     {name:'Easy',      budget:130, dmg:.85, reals:5,  whatifs:3, goods:1, radar:6, desc:'More money, softer hits, early warnings. A random mix of real and "what if" events.'},
+  realistic:{name:'Realistic', budget:110, dmg:1,   reals:7,  whatifs:5, goods:2, radar:5, desc:'7 real events, 5 "what if" ones and some good news, picked at random. Different every run.'},
+  y2026:    {name:'2026 Mode', budget:110, dmg:1.1, reals:11, whatifs:0, goods:0, radar:4, desc:'All eleven real events of 2026, in the order they happened, hitting a little harder.'},
+  daily:    {name:'Daily run', budget:110, dmg:1,   reals:7,  whatifs:5, goods:2, radar:5, desc:`Today's run (${TODAY}). Everyone who plays today gets the same events, so scores can be compared.`},
+};
+const LV_CUT = .35, BRITTLE = .35, PRE_COST = 25, SLOTS = [6,13,18,35,37,39,41,43,48,50];
+const N = part => P[part].name;
+const IDEA = {quick:'Pay to make the problem go away fast.', stock:'Live off stored supplies for a while.', alt:'Bring in a different supplier.',
+  lock:'Commit to a long deal in return for guaranteed supply.', wait:'Spend nothing and see if it passes.', lean:'Change how you work so you need less.', move:'Shift the work somewhere else.'};
+// o(kind, name, cost, share of damage blocked, verdict, why, extras)
+const o = (kind,name,cost,block,verdict,why,x={}) => ({kind,name,cost,block,verdict,why,...x});
+const LEAD = {stock:2, lean:4, lock:6, alt:8, move:8}, PRE_LEAD = 3;
+const CONCEPTS = {
+  capacity:{name:'Capacity reservation', plain:'When factories are sold out, you are not buying a product. You are buying a place in the queue.'},
+  safety:{name:'Safety stock', plain:'Extra supplies kept just in case, so a hiccup upstream does not stop you.'},
+  demand:{name:'Demand reduction', plain:'When something is scarce everywhere, the surest fix is to need less of it.'},
+  concentration:{name:'Concentration risk', plain:'The danger of getting nearly all of something from one company or one country.'},
+  leadtime:{name:'Lead time', plain:'The wait between ordering something and getting it. Long lead times mean deciding long before the problem shows up.'},
+  ttr:{name:'Time to recover', plain:'How long a supplier needs to get back to normal. If your stock lasts longer than that, you are fine.'},
+  hedge:{name:'Hedging', plain:'Locking in price and supply now, so a long shortage later cannot hurt you as much.'},
+  flex:{name:'Flexible capacity', plain:'Being able to move work between sites, so a local problem stays local.'},
+  reroute:{name:'Rerouting', plain:'When one road is closed, the goods still exist. Find another road before paying for a plane.'},
+  geo:{name:'Geographic diversification', plain:'Buying from more than one country, so one government\'s decision cannot cut you off.'},
+  dual:{name:'Dual sourcing', plain:'Having two suppliers or plants for the same part, so losing one is not the end.'},
+  bullwhip:{name:'Bullwhip effect', plain:'When everyone panic-buys after a scare, the shortage gets worse for all of them. Fix your price; do not hoard.'},
+  recycle:{name:'Recycling as supply', plain:'Scrap is a second mine. When the first one stumbles, recycled material fills part of the gap.'},
+  regulatory:{name:'Regulatory risk', plain:'Rules can change faster than buildings can be built. Spread your sites across places with different rules.'},
+  substitute:{name:'Substitution', plain:'When the usual part cannot be had, a different one that does the same job may be sitting on a shelf.'},
+  integrate:{name:'Vertical integration', plain:'Owning a step of the chain yourself, so nobody else can switch it off.'},
+  solesource:{name:'Sole sourcing', plain:'When only one company in the world makes something, switching is not an option. Your tools are planning early and using less.'},
+  rightsize:{name:'Right-sizing', plain:'Protection costs money. When the danger passes, trim what you no longer need and keep what you still do.'},
+  priority:{name:'Customer priority', plain:'In a shortage, suppliers serve their biggest and most committed customers first.'},
+  pool:{name:'Risk pooling', plain:'Spreading production across places, so one local disaster only hits a slice of it.'},
+  proportion:{name:'Proportionate response', plain:'Not every disruption deserves money. If it will fix itself in days, the smart move can be to wait.'},
+  local:{name:'Local sourcing', plain:'Buying closer to home to stay clear of tariffs and border trouble.'},
+  proactive:{name:'Proactive resilience', plain:'Protection is cheapest before the crisis. During it, everyone wants the same thing at once.', how:'Build a backup before trouble arrives.'},
+  ripple:{name:'Ripple effect', plain:'A shortage in one place travels down the chain and shows up somewhere that looked unrelated.', how:'Watch damage spread from one part to another.'},
+  penny:{secret:true, name:'Penny pincher', plain:'Finished the year spending under 150 credits.'},
+  iron:{secret:true, name:'Iron robot', plain:'Finished the year with every part at 80 health or more.'},
+  close:{secret:true, name:'Close call', plain:'A part dropped to 5 health or less, and you still finished the year.'},
+  gambler:{secret:true, name:'Gambler', plain:'Hoped it would blow over three times in one run, and it did.'},
+  fortress:{secret:true, name:'Fortress', plain:'Had a backup in place on every single body part.'},
+  dancer:{secret:true, name:'Robot whisperer', plain:'Poked the robot until it danced.'},
+  tradeoff:{name:'Cost versus resilience', plain:'Every backup costs money. The skill is buying the few that matter, not all of them.', how:'Keep the robot walking for the full year.'},
+};
+const SK = {hbm:'capacity', abf:'safety', helium:'demand', bromine:'concentration', xfmr:'leadtime', quake:'ttr', copper:'hedge', heat:'flex', lane:'reroute', ban:'geo', fire:'dual', drought:'pool', dram:'bullwhip', copperreal:'recycle', ny:'regulatory', gev:'substitute', texas:'integrate', crowd:'priority', litho:'solesource', goodmem:'rightsize', goodcu:'rightsize', goodpack:'rightsize', cyber:'proportion', tariff:'local'};
+const BROKE = o('none','Do nothing',0,0,'trap','You had no credits left to respond. Keeping a little in reserve is part of the job.');
+const EVENTS = [
+  {id:'hbm', week:20, real:true, title:'The memory squeeze', hits:['memory'], base:40,
+   plain:"Only three bakeries make the bread everyone wants, and the queue is out the door.",
+   body:'AI chips need a special fast memory called HBM sitting right next to them. Only three companies make it. In the game, all three are sold out for the year.',
+   fact:'SK hynix holds about 50% of HBM in 2026, Samsung about 33%, Micron about 18%.',
+   src:'https://io-fund.com/ai-stocks/nvidia-sk-hynix-deal-ai-memory-supply', srcName:'I/O Fund',
+   options:[
+    o('lock','Sign a long-term contract',45,.8,'best','When every maker is sold out, a firm place in the queue is the only thing that counts. Expensive, and right.',{lv:1,later:10}),
+    o('alt','Qualify a second supplier',35,.15,'trap','There are only three makers and all three are sold out. A second supplier has nothing to sell you.'),
+    o('quick','Pay for emergency spot buys',15,.35,'ok','Spot buys kept you going, but you paid top price and nothing has changed for next time.',{brittle:1}),
+    o('wait','Hope it blows over',0,0,'trap','Demand for AI memory is not going away on its own.',{luck:.1})]},
+  {id:'abf', week:25, real:true, title:'One company, one film', hits:['nerves'], base:40,
+   plain:"Every pizza in the world needs a box, and one company makes nearly all the boxes.",
+   body:'Every advanced chip sits on a small base board, built up from a special insulating film called ABF. Almost all of it comes from a single company. In the game, deliveries tighten this week and nobody knows for how long.',
+   fact:'Ajinomoto makes about 98% of the ABF film in chip substrates.',
+   src:'https://m.giikorea.co.kr/report/qyr1523403-abf-ajinomoto-build-up-film-global-market-share.html', srcName:'GII Korea',
+   options:[
+    o('stock','Build a reserve of base boards',25,.7,'best','With one supplier you cannot switch. A buffer of finished boards is the cheap way to ride out a wobble.',{lv:1}),
+    o('alt','Find a second film supplier',55,.15,'trap','One company makes about 98% of this film. There is almost nobody else to buy from, so the money bought very little.'),
+    o('lock','Sign a long-term film contract',40,.6,'ok','A contract puts you near the front of the line. It works, though a simple reserve would have done the job for less.',{lv:1,later:10}),
+    o('quick','Pay for emergency shipping',15,.15,'trap','Faster trucks do not help when the factory itself is short.',{brittle:1})]},
+  {id:'helium', week:10, real:true, title:'Qatar helium shock', hits:['cooling','memory'], base:50,
+   plain:"A third of the petrol stations closed overnight, and your car is nearly empty.",
+   body:'Chip factories need helium gas to run their machines. A big share of the world supply just went offline with no date for its return, and the memory makers in South Korea depend on it.',
+   fact:'QatarEnergy declared force majeure at Ras Laffan on March 2, 2026, removing roughly 30–38% of global helium output. South Korea got 64.7% of its helium imports from Qatar in 2025.',
+   src:'https://www.digitimes.com/news/a20260329PR200/2026-supply-market.html', srcName:'DIGITIMES',
+   options:[
+    o('lean','Recycle helium inside your factories',20,.65,'best','When a third of the world supply vanishes, everyone fights over what is left. Using less is the one move that does not depend on anyone else.',{lv:1}),
+    o('alt','Switch to another supplier',45,.15,'trap','Every other buyer called the same suppliers that morning. You paid a lot for a small share.'),
+    o('quick','Pay for emergency air freight',30,.15,'trap','There is no spare helium to fly in. Speed does not fix a shortage.',{brittle:1}),
+    o('wait','Hope it blows over',0,0,'trap','A third of world supply does not come back in a week.',{luck:.1})]},
+  {id:'bromine', week:16, real:true, title:'The bromine lifeline', hits:['brain'], base:40,
+   plain:"A restaurant that buys all its salt from one shop, in another country.",
+   body:'Bromine is a chemical used to carve the tiny patterns on chips. South Korea buys nearly all of its bromine from one country. In the game, one shipment is a few weeks late.',
+   fact:'South Korea gets 97.5% of its bromine (used in chip etching) from Israel.',
+   src:'https://www.trendforce.com/news/2026/04/17/news-korea-chip-supply-risks-rise-material-disruptions-may-outweigh-energy-uncertainty-israeli-bromine-imports-at-97-5/', srcName:'TrendForce',
+   options:[
+    o('stock','Use a small stockpile',15,.75,'best','A late shipment is a short problem. A few weeks of stock covers it cheaply.'),
+    o('alt','Line up a second source',40,.4,'ok','Slow to help today, but with 97.5% coming from one country this protects you for the rest of the year.',{lv:1}),
+    o('lock','Sign a long contract with the same supplier',50,.15,'trap','The contract is with the same supplier in the same country. You paid more and depend on them just as much.',{later:10}),
+    o('wait','Hope it blows over',0,0,'ok','A short delay sometimes sorts itself out. Sometimes.',{luck:.5})]},
+  {id:'xfmr', week:22, real:true, title:'Transformer backlog', hits:['power'], base:45,
+   plain:"You order a sofa and are told it will arrive in two and a half years.",
+   body:'A data center cannot switch on until it is plugged into the power grid. That takes giant transformers, which are built to order, and the waiting list is long.',
+   fact:'Large power transformers averaged 128 weeks lead time, with prices up 77% since 2019.',
+   src:'https://www.supplychainconnect.com/procurement/article/55384522/the-2026-supply-chain-supercycle-why-ai-infrastructure-shortages-run-deeper-than-the-chip', srcName:'Supply Chain Connect',
+   options:[
+    o('lock','Reserve factory slots on a long contract',50,.75,'best','With a wait of 128 weeks, the only real fix is a place in the queue. Expensive, and right.',{lv:1,later:10}),
+    o('alt','Buy refurbished units',25,.55,'ok','Second-hand transformers exist and they work. Not pretty, but good value.'),
+    o('quick','Pay extra to jump the queue',45,.15,'trap','Everyone in the queue is already paying extra. The factories cannot build any faster.',{brittle:1}),
+    o('quick','Rent mobile generators',20,.35,'ok','Generators keep the lights on, but the fuel is costly and the real problem is still waiting.',{brittle:1})]},
+  {id:'quake', week:0, real:false, title:'Earthquake near a chip factory', hits:['brain'], base:45,
+   plain:"A power cut halfway through cooking: everything in the oven is ruined.",
+   body:'What if a strong earthquake shook a region packed with chip factories? The buildings are intact, but machines stop for safety checks that take a few weeks.',
+   options:[
+    o('stock','Use your chip stockpile',20,.75,'best','The factories will be back in weeks. A stockpile bridges exactly that kind of gap.'),
+    o('move','Move orders to another factory',50,.35,'ok','Moving chip production takes many months. It will help next time, not this time.',{lv:1}),
+    o('quick','Pay to jump the queue',35,.15,'trap','The machines are stopped for everyone. There is no queue to jump.',{brittle:1}),
+    o('wait','Hope it blows over',0,0,'ok','A gap of a few weeks is survivable if your brain was healthy to begin with.',{luck:.4})]},
+  {id:'copper', week:0, real:false, title:'Copper mine strike', hits:['wiring'], base:45,
+   plain:"Every plumber in town runs out of pipe on the same day.",
+   body:'What if workers at a major copper mine walked out? Talks are stuck, with no end in sight. Cables and coils get more expensive and slower to arrive.',
+   options:[
+    o('lock','Lock in copper on a long contract',45,.7,'best','A strike with no end in sight is a long problem. A long contract matches it.',{lv:1,later:10}),
+    o('stock','Build a copper reserve now',35,.15,'trap','Buying a reserve in the middle of a shortage means paying peak prices for very little metal. Reserves are built before the crisis.'),
+    o('quick','Pay spot prices for rush delivery',15,.35,'ok','It keeps the cables coming this month. Next month you pay again.',{brittle:1}),
+    o('wait','Hope it blows over',0,0,'trap','Nothing in the story said this would end soon.',{luck:.15})]},
+  {id:'heat', week:0, real:false, title:'Record heatwave', hits:['cooling','memory'], base:40,
+   plain:"A laptop left on a duvet in summer: it slows down so it does not cook itself.",
+   body:'What if a record heatwave hit a region full of data centers? Cooling systems run flat out. Forecasters expect the heat to break within two weeks.',
+   options:[
+    o('move','Shift work to cooler regions for now',10,.7,'best','Cheap, fast, and exactly as temporary as the heatwave.'),
+    o('stock','Install backup chillers',50,.6,'ok','It works and heatwaves will return, but that is a lot of money for a two-week problem.',{lv:1}),
+    o('quick','Truck in emergency cooling',30,.35,'ok','It worked, at three times the price of simply moving the work.',{brittle:1}),
+    o('wait','Hope it blows over',0,0,'ok','Two weeks is short. Whether the robot can take two weeks of heat is another question.',{luck:.45})]},
+  {id:'lane', week:0, real:false, title:'Shipping lane blocked', hits:['legs'], base:40,
+   plain:"The only road into town is closed, and your delivery van is on the wrong side.",
+   body:'What if a key shipping lane was blocked? Ships are being sent the long way round, which adds about three weeks to every delivery.',
+   options:[
+    o('move','Reroute through other ports',20,.7,'best','The goods still exist; they just need another road. Rerouting is cheap and fits the problem.'),
+    o('quick','Pay for air freight',55,.15,'trap','Server racks are heavy. Flying them costs a fortune, and next time you are no better prepared.',{brittle:1}),
+    o('lock','Book guaranteed cargo space',40,.3,'ok','Guaranteed space on a ship that cannot get through helps little today, though it will help later.',{lv:1,later:10}),
+    o('wait','Hope it blows over',0,0,'ok','Three weeks of delay hurts, but it does end.',{luck:.3})]},
+  {id:'ban', week:0, real:false, title:'Sudden export ban', hits:['memory'], base:45,
+   plain:"You paid for a parcel, and customs will not let it leave.",
+   body:'What if a government suddenly banned exports of high-end memory, with no end date? Orders already paid for are stuck at the border. Other countries still sell.',
+   options:[
+    o('alt','Switch to a supplier in another country',35,.7,'best','The ban covers one country. A supplier somewhere else walks straight around it.',{lv:1}),
+    o('stock','Use stockpiled memory',20,.45,'ok','It buys time, but a ban with no end date outlasts any stockpile.'),
+    o('quick','Pay brokers for emergency spot buys',50,.15,'trap','Brokers charge the most on the day a ban hits, and they cannot get much across the border either.',{brittle:1}),
+    o('wait','Hope it blows over',0,0,'trap','Bans with no end date rarely end quickly.',{luck:.15})]},
+  {id:'fire', week:0, real:false, title:'Factory fire', hits:['nerves'], base:45,
+   plain:"The cake is ready, but there are no plates to serve it on.",
+   body:'What if a fire shut down one factory that makes chip base boards? Rebuilding will take months. Other plants are still running.',
+   options:[
+    o('move','Move orders to another plant',30,.7,'best','One plant burned; the others did not. Moving orders is the direct fix and leaves you less exposed.',{lv:1}),
+    o('stock','Use your reserve of base boards',20,.5,'ok','A reserve covers weeks. The rebuild takes months.'),
+    o('quick','Pay for emergency shipping',40,.15,'trap','There is nothing to ship from a factory that burned down.',{brittle:1}),
+    o('wait','Hope it blows over',0,0,'trap','A burnt factory does not fix itself.',{luck:.1})]},
+  {id:'drought', week:0, real:false, title:'Drought near the chip factories', hits:['brain'], base:40,
+   plain:"The town's taps run low, and the bakery needs water for every loaf.",
+   body:'What if a drought forced water rationing where chips are made? Chip factories use huge amounts of very clean water. The drought is expected to last all season.',
+   options:[
+    o('move','Move orders to a wetter region',35,.6,'best','A season-long drought needs a season-long answer. Spreading production does that.',{lv:1}),
+    o('quick','Pay to truck water in',20,.35,'ok','Trucks work, and you will be paying for them every week until it rains.',{brittle:1}),
+    o('stock','Use your chip stockpile',30,.15,'trap','A stockpile lasts weeks. The drought lasts all season.'),
+    o('wait','Hope it blows over',0,0,'trap','Hoping for rain is not a plan.',{luck:.2})]},
+  {id:'cyber', week:0, real:false, title:'Cyberattack on a freight company', hits:['legs'], base:40,
+   plain:"The delivery company's computers are down, and nobody knows which van has your parcel.",
+   body:'What if hackers froze the systems of a big freight company? Your equipment is sitting in a warehouse. Engineers expect the systems back within days.',
+   options:[
+    o('wait','Wait for the systems to come back',0,0,'best','Sometimes the right move is to do nothing. A problem measured in days does not deserve a slice of the year\'s budget.',{luck:.8}),
+    o('quick','Pay couriers to hand-carry parts',30,.15,'trap','It worked, but you paid a premium to solve a problem that was about to solve itself.',{brittle:1}),
+    o('alt','Split freight across two carriers',25,.5,'ok','A good habit that protects you later, though this particular outage was nearly over.',{lv:1}),
+    o('lock','Book guaranteed cargo space',45,.15,'trap','Guaranteed space with a company whose computers are frozen guarantees very little.',{later:10})]},
+  {id:'tariff', week:0, real:false, title:'Surprise copper tariff', hits:['wiring'], base:40,
+   plain:"The price of flour doubles overnight, and every baker has to decide what to do.",
+   body:'What if a new tariff suddenly made imported copper far more expensive? The tariff is law now and is not going away.',
+   options:[
+    o('alt','Buy from a supplier inside the tariff wall',30,.7,'best','The tariff only hits imports. A local supplier makes it someone else\'s problem.',{lv:1}),
+    o('quick','Pay the tariff and move on',10,.35,'ok','It works today, and you will keep paying it every time you order.',{brittle:1}),
+    o('lock','Lock in imported copper on a long contract',50,.15,'trap','A long contract for imported copper locks the tariff in too.',{later:10}),
+    o('wait','Hope it blows over',0,0,'trap','It is already law.',{luck:.1})]},
+  {id:'litho', week:0, real:false, title:'Chip-making machines delayed', hits:['eyes'], base:40,
+   plain:"Only one workshop in the world builds the oven every bakery needs, and yours is stuck at customs.",
+   body:'What if export paperwork held up a shipment of the newest chip-printing machines? Only one company makes them, and each one takes months to build and ship.',
+   options:[
+    o('lean','Squeeze more out of the machines you have',20,.65,'best','With one maker and no second source, the only quick move is to get more from what you already own.'),
+    o('alt','Find another supplier',45,.15,'trap','Only one company makes these machines. There is no other supplier to find.'),
+    o('lock','Order next year\'s machines now',40,.35,'ok','It does not fix this delay, but it puts you ahead in the queue for the next one.',{lv:1,later:10}),
+    o('wait','Hope the paperwork clears',0,0,'ok','Paperwork sometimes clears quickly. Sometimes.',{luck:.3})]},
+  {id:'goodmem', week:0, real:false, good:true, title:'A new memory factory opens', hits:['memory'], base:0,
+   plain:"A fourth bakery opens in town, and suddenly bread is easy to find.",
+   body:'What if a new memory factory started shipping earlier than expected? Supply loosens and prices start to fall.', options:[]},
+  {id:'goodcu', week:0, real:false, good:true, title:'A big copper mine reopens early', hits:['wiring'], base:0,
+   plain:"The flooded bakery is back, with fresh bread on every shelf.",
+   body:'What if a major copper mine got back to full output months ahead of plan? Copper prices slide.', options:[]},
+  {id:'goodpack', week:0, real:false, good:true, title:'A new packaging plant opens', hits:['nerves'], base:0,
+   plain:"A second restaurant opens next door, and you can get a table again.",
+   body:'What if a new chip-packaging plant came online and took on outside customers? The queue gets shorter.', options:[]},
+  {id:'dram', week:3, real:true, title:'Memory prices double', hits:['memory'], base:40,
+   plain:"Concert tickets sold out in minutes, and the resale price goes up every week.",
+   body:'Memory makers have switched their factories to the special memory AI needs, so there is less ordinary memory for everyone and prices are racing upward. In the game, your memory bill climbs every week with no sign of stopping.',
+   fact:'TrendForce forecast that ordinary DRAM contract prices would rise 90% to 95% in the first quarter of 2026 compared with the quarter before.',
+   src:'https://supplychainconnect.com/news-trends/article/55382945/memory-chip-shortage-drives-up-electronics-prices', srcName:'Supply Chain Connect',
+   options:[
+    o('lock','Fix your price on a long contract',45,.75,'best','When prices climb every week, the buyer who fixed a price early wins. A long contract is how you stop the clock.',{lv:1,later:10}),
+    o('stock','Stockpile as much memory as you can',50,.15,'trap','Stockpiling in the middle of a price spike means buying the most at the worst price. When everyone does it, the shortage gets deeper.'),
+    o('quick','Keep buying week by week',15,.3,'ok','You kept the memory coming, and paid more for it every single week.',{brittle:1}),
+    o('wait','Hope prices fall back',0,0,'trap','Prices were forecast to keep rising, and they did.',{luck:.1})]},
+  {id:'copperreal', week:27, real:true, title:'The copper squeeze', hits:['wiring'], base:40,
+   plain:"One of the biggest bakeries in the world flooded last year, and bread has cost more ever since.",
+   body:'One of the largest copper mines in the world has been running far below normal since an accident last year, and prices hit records this year. The mine is slowly restarting. In the game, your cable costs jump.',
+   fact:'Grasberg, the second-largest copper mine in the world and about 3% of global supply, was still under force majeure in July 2026 after a September 2025 accident. Copper touched records near $14,500 a tonne earlier in 2026.',
+   src:'https://www.kpler.com/blog/copper-the-perfect-squeeze', srcName:'Kpler',
+   options:[
+    o('alt','Switch part of your supply to recycled copper',20,.65,'best','Scrap is a second mine. When the first one stumbles, recycled metal fills part of the gap for less.',{lv:1}),
+    o('lock','Lock in a long contract at today\'s price',50,.15,'trap','You locked in a record price just as the mine began restarting. When supply returns, you are stuck overpaying.',{later:10}),
+    o('quick','Pay spot prices for now',15,.35,'ok','It works, and you pay record prices for as long as they last.',{brittle:1}),
+    o('wait','Hope prices ease as the mine restarts',0,0,'ok','The mine is restarting, so prices should ease. Whether they ease in time is the gamble.',{luck:.35})]},
+  {id:'ny', week:29, real:true, title:'New York pauses new data centers', hits:['legs'], base:40,
+   plain:"The town stops handing out building permits for a year, and your plot is in that town.",
+   body:'New York put a one-year pause on building new data centers while it studies what they do to power bills and the grid. In the game, one of your new sites is in New York. Your other sites are in states with no pause.',
+   fact:'In mid-July 2026 New York became the first US state to impose a statewide moratorium on new data center construction, planned to last one year. At least 75 US data center projects, worth about $130 billion, were blocked or delayed in the first quarter of 2026.',
+   src:'https://www.networkworld.com/article/4200222/data-center-energy-constraints-and-moratoriums-are-mounting-expect-to-see-stalled-ai-projects.html', srcName:'Network World',
+   options:[
+    o('move','Shift the build to another state',30,.7,'best','The pause covers one state for one year. Building elsewhere steps around it and spreads your sites for next time.',{lv:1}),
+    o('quick','Pay lawyers and lobbyists to fight it',40,.15,'trap','The pause is already law. Lawyers are slow and expensive, and the year passes anyway.',{brittle:1}),
+    o('lean','Squeeze more out of your existing sites',20,.45,'ok','Upgrading what you already have helps, but only so far.'),
+    o('wait','Wait out the year',0,0,'trap','A year is a long time to stand still.',{luck:.15})]},
+  {id:'gev', week:30, real:true, title:'Gas turbines sold out', hits:['power'], base:45,
+   plain:"The only generator shops in the country have a waiting list longer than your lease.",
+   body:'Data centers that cannot wait for the grid build their own gas power plants. The big turbines for those plants are now sold out for years.',
+   fact:'GE Vernova\'s gas turbine backlog reached 116 GW in the second quarter of 2026, up from 100 GW the quarter before, with delivery slots sold out until 2031.',
+   src:'https://www.enverus.com/blog/the-queue-before-the-queue-gevs-backlog-extends-to-2031/', srcName:'Enverus',
+   options:[
+    o('alt','Use smaller engines and batteries you can get now',35,.65,'best','When the big machine has a five-year queue, lots of smaller ones that ship this year do the job. Different kit, same electricity.',{lv:1}),
+    o('lock','Reserve a turbine slot',55,.3,'ok','Worth having for the long run, but that turbine arrives around 2031. It does little for this year.',{lv:1,later:10}),
+    o('quick','Pay a premium to jump the queue',50,.15,'trap','There is no spare factory to pay. Everyone ahead of you already paid.',{brittle:1}),
+    o('wait','Hope a slot opens up',0,0,'trap','Slots are sold out for years.',{luck:.05})]},
+  {id:'texas', week:32, real:true, title:'Texas freezes grid connections', hits:['power','legs'], base:40,
+   plain:"A brand-new house with no electricity connection.",
+   body:'Texas told its grid operator to stop approving new data center connections until every project in the queue has been audited. Nobody has said how long the audit will take.',
+   fact:'On August 3, 2026, Governor Greg Abbott directed Texas regulators and the grid operator ERCOT to pause approvals of new data center grid connections until an audit is done. BloombergNEF said the pause put 20% of the US data center pipeline at risk of delay.',
+   src:'https://www.eenews.net/articles/texas-data-center-approval-halt-scrambles-grid-plans/', srcName:'E&E News',
+   src2:'https://www.datacenterdynamics.com/en/news/bloomberg-nef-texas-grid-pause-puts-20-percent-of-us-data-center-pipeline-at-risk/', srcName2:'DCD',
+   options:[
+    o('lean','Generate your own power on site',35,.65,'best','If you cannot plug in, bring your own power. On-site generation does not need the grid operator to say yes.',{lv:1}),
+    o('quick','Rent mobile generators for now',20,.4,'ok','A fair bridge, but nobody knows how long the audit lasts, and rented power is expensive.',{brittle:1}),
+    o('lock','Sign a long grid contract',45,.15,'trap','Nobody can sign a grid contract while approvals are frozen.'),
+    o('wait','Wait for the audit to finish',0,0,'ok','Nobody knows how long the audit will take. Waiting is a coin flip you do not control.',{luck:.25})]},
+  {id:'crowd', week:45, real:true, title:'AI takes the whole factory', hits:['nerves'], base:40,
+   plain:"One customer books every table in the restaurant, every night.",
+   body:'The outside factories that package and test chips are full of AI orders, and everyone is waiting longer. In the game, your own packaging partner tells you the line is full.',
+   fact:'On November 10, 2026, the interim head of chipmaker Nexperia told Reuters the company was "totally oversubscribed" as suppliers shifted capacity toward AI data centers. A day earlier the head of STMicroelectronics warned that foundries and packaging firms were moving resources away from other products.',
+   src:'https://www.thestar.com.my/tech/tech-news/2026/11/10/chipmakers-warn-ai-demand-is-creating-bottlenecks-in-automotive-supply-chain', srcName:'Reuters, via The Star',
+   options:[
+    o('lock','Commit to a multi-year volume deal',45,.7,'best','In a shortage, factories serve the customers who committed first and biggest. A firm multi-year order moves you up the line.',{lv:1,later:10}),
+    o('move','Bring packaging in-house',55,.3,'ok','It will protect you later, but building your own line takes most of a year.',{lv:1}),
+    o('quick','Pay rush fees',25,.15,'trap','The line is full. Rush fees buy a place in a queue that is not moving.',{brittle:1}),
+    o('wait','Hope the line frees up',0,0,'trap','AI orders are growing, not shrinking.',{luck:.1})]},
+];
+/*ENDDATA*/
+
+const LESSONS = {
+  memory:'Three companies make nearly all HBM. When their order books fill, there is no fourth door to knock on, and a finished AI chip without memory is a paperweight.',
+  cooling:'Helium is a tiny line on the bill and a fab cannot run without it. One plant going offline in Qatar reached memory makers in South Korea within weeks.',
+  power:'A data center with chips and no transformer is a warehouse. With waits of 128 weeks, the order that would have saved you had to be placed two years ago.',
+  brain:'The chips rarely fail on their own. They fail because something upstream ran out first: memory, packaging, or a single chemical like bromine.',
+  eyes:'The most advanced chip-making machines come from a single company. With no second source, a delay there reaches every advanced chip.',
+  legs:'Data centers stand at the end of every chain. Each shortage upstream, in memory, power or cooling, eventually arrives here.',
+  nerves:'Chip packaging gets little attention until it stops. One company makes about 98% of the film inside the base boards, so there is no backup when it runs short.',
+  wiring:'Copper runs through every part of the build. Steady strain with no slack adds up to a failure.',
+  win:'Nobody can afford to protect everything. The skill is knowing which weak spot will hurt most and paying for that one early, before the bad news arrives.',
+};
+
+let state;
+const cfg = () => MODES[state.mode] || MODES.realistic;
+const EV = Object.fromEntries(EVENTS.map(e => [e.id,e]));
+const evs = () => (state.sched||[]).map(x => ({...EV[x.id], week:x.week, sev:x.sev}));
+function rnd(){ if (state && state.seed!=null){ let t=(state.seed=(state.seed+0x6D2B79F5)|0); t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; } return Math.random(); }
+const dayHash = () => { let h=2166136261; for (const ch of TODAY){ h^=ch.charCodeAt(0); h=Math.imul(h,16777619); } return h|0; };
+const shuffle = a => { a=a.slice(); for (let i=a.length-1;i>0;i--){ const j=Math.floor(rnd()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+function makeSched(){
+  const c=cfg(), real=shuffle(EVENTS.filter(e=>e.real)).slice(0,c.reals).map(e=>({id:e.id,week:e.week,sev:1}));
+  const gs=shuffle(SLOTS.filter(w=>w>=35)).slice(0,c.goods||0), bs=shuffle(SLOTS.filter(w=>!gs.includes(w))).slice(0,c.whatifs).sort((a,b)=>a-b);
+  const pool=shuffle(EVENTS.filter(e=>!e.real&&!e.good)).slice(0,c.whatifs), good=shuffle(EVENTS.filter(e=>e.good)).slice(0,c.goods||0);
+  return real.concat(pool.map((e,i)=>({id:e.id,week:bs[i],sev:+(.85+rnd()*.3).toFixed(2)})), good.map((e,i)=>({id:e.id,week:gs[i],sev:1}))).sort((a,b)=>a.week-b.week);
+}
+function goodOptions(ev){
+  const part=ev.hits[0], has=(state.lv[part]||0)>0, more=evs().some(e=>e.week>state.week && !e.good && e.hits.includes(part)), nm=N(part).toLowerCase();
+  return has ? [
+    o('lean','Renegotiate and keep your backup',10,1, more?'best':'ok', more?`More trouble for the ${nm} is still ahead, so the backup is worth keeping. A small fee brings its price back in line.`:`It works, but nothing else is coming for the ${nm} this year. You paid to keep protection you no longer need.`, {heal:15,idea:'Pay a small fee so your backup costs the going rate.'}),
+    o('quick','Cancel the deal and take the cash',0,1, more?'trap':'best', more?`You sold your umbrella on a sunny day. More trouble for the ${nm} is still ahead.`:`Nothing else is coming for the ${nm} this year. Protection you no longer need is money you can use elsewhere.`, {heal:15,refund:20,drop:1,idea:'Give up one backup and get credits back.'}),
+    o('wait','Change nothing',0,1,'ok','You kept the backup and kept paying the old, higher price for it.',{heal:15,later:15,idea:'Keep the backup at the old, higher price.'}),
+  ] : [
+    o('stock','Stock up while it is cheap',20,1, more?'best':'ok', more?`More trouble for the ${nm} is still ahead. Cheap supply today is the best time to prepare for it.`:`Cheap, but nothing else is coming for the ${nm} this year, so the stock just sits there.`, {heal:15,lv:1,idea:'Buy a backup at today\'s low prices.'}),
+    o('wait','Enjoy the lower prices',0,1, more?'ok':'best', more?`Fine for today, but more trouble for the ${nm} is ahead, and you let a cheap chance to prepare go by.`:`Nothing else is coming for the ${nm} this year, so there is nothing to prepare for. Take the saving.`, {heal:25,idea:'Spend nothing and bank the healthier supply.'}),
+    o('lock','Sign a long contract at the new low price',40,1,'trap','A long contract fixes today\'s price. With new supply arriving, prices are still falling, and you will be the one overpaying.',{heal:15,lv:1,later:10,idea:'Lock in today\'s price for years.'}),
+  ];
+}
+const mult = part => (1-LV_CUT*(state.lv[part]||0)) * (1+BRITTLE*(state.brittle[part]||0));
+const pending = part => state.queue.filter(f=>!f.done && f.t==='backup' && f.part===part).length;
+const resilience = () => Math.round(PARTS.reduce((t,p)=>t+(state.lv[p.id]||0),0)/(PARTS.length*2)*100);
+function fresh(){
+  return {phase:'intro', mode:'realistic', week:0, prog:0, budget:100, parts:Object.fromEntries(PARTS.map(p=>[p.id,100])),
+    queue:[], lv:{}, brittle:{}, hist:{}, story:[], sched:null, spent:0, log:[], eventId:null, failed:null, seen:[]};
+}
+
+/* ---------- static DOM ---------- */
+$('rows').innerHTML = '<h2>Body parts<small>Tap one to inspect or patch it</small></h2>' + PARTS.map(p => `
+  <button class="row ${p.id}" id="row-${p.id}" data-part="${p.id}" aria-label="${p.name}, ${p.what}">
+    <span class="nm"><span class="s">${p.short}</span><span class="l">${p.name}</span><em>${p.what}</em></span><span class="val" id="v-${p.id}">100</span>
+    <span class="bar"><i id="b-${p.id}" style="width:100%"></i></span><span class="pips" id="p-${p.id}"></span><span class="delta" id="d-${p.id}"></span>
+  </button>`).join('');
+document.querySelectorAll('.row').forEach(r => {
+  const on = () => $('bot').dataset.spot = r.dataset.part, off = () => delete $('bot').dataset.spot;
+  r.addEventListener('pointerenter',on); r.addEventListener('pointerleave',off);
+  r.addEventListener('focus',on); r.addEventListener('blur',off);
+  r.addEventListener('click',() => openPart(r.dataset.part));
+});
+$('bot').addEventListener('click', e => {
+  const el = e.target.closest('.brain,.memory,.nerves,.power,.cooling,.wiring,.legs,.eyes'); if (!el){ poke(); return; }
+  const p = PARTS.find(p => el.classList.contains(p.id)); if (p) openPart(p.id);
+});
+$('track').innerHTML = Array.from({length:52},(_,i)=>`<i class="wk${i%13===0&&i?' q':''}" id="wk-${i+1}"></i>`).join('');
+
+/* ---------- sound (off by default) ---------- */
+let AC = null, soundOn = true; try { if (localStorage.getItem('kiw-sound')==='off') soundOn = false; } catch(e) {}
+function wakeAudio(){ if (!soundOn) return; try { AC = AC || new (window.AudioContext||window.webkitAudioContext)(); if (AC.state==='suspended') AC.resume(); } catch(e) {} }
+addEventListener('pointerdown', wakeAudio, true); addEventListener('keydown', wakeAudio, true);
+let lastInput = performance.now(), lastChat = 0, pokes = [];
+const touched = () => { lastInput = performance.now(); }; addEventListener('pointerdown', touched, true); addEventListener('keydown', touched, true);
+const IDLE = {
+  intro:['Pick a level. I will just be here. Walking.','No rush. The supply chain will still be broken.','I have been walking on the spot for a while now.'],
+  think:['No pressure. It is only my whole body.','Take your time. I am only slightly on fire.','Whenever you are ready. I will hold this pose.'],
+  walk:['I would tell you a helium joke, but there is a shortage.','My memory is sold out until next year. What were we talking about?','I ordered a transformer. It arrives in 128 weeks. I can wait.','Copper prices are up. I am basically jewellery now.','Single-sourced and proud. Also terrified.','Fun fact: I have never once sat down.','Is it me, or is this a very long walk?'],
+};
+function poke(){
+  const t = performance.now(); pokes = pokes.filter(x => t-x < 4000); pokes.push(t); const n = pokes.length;
+  if (n===3) say('Hey.'); else if (n===5) say('Stop that. I am walking here.'); else if (n===8) say('Seriously?');
+  else if (n>=10){ pokes = []; danceT = 3.4; say('Fine. You asked for it.'); sfx.win(); learn('dancer'); }
+}
+function tone(f, dur, type='sine', vol=.2, to=null, delay=0){
+  if (!soundOn || !AC) return;
+  const t=AC.currentTime+delay, o=AC.createOscillator(), g=AC.createGain();
+  o.type=type; o.frequency.setValueAtTime(f,t); if (to) o.frequency.exponentialRampToValueAtTime(to,t+dur);
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+.012); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+dur+.03);
+}
+const sfx = {
+  step:()=>tone(95,.07,'sine',.16,48),
+  zap:()=>{ tone(720,.2,'sawtooth',.1,110); tone(180,.16,'square',.05,60,.02); },
+  alarm:()=>{ tone(440,.14,'square',.07); tone(330,.2,'square',.07,null,.16); },
+  good:()=>[523,659,784].forEach((f,i)=>tone(f,.16,'triangle',.14,null,i*.09)),
+  bad:()=>{ tone(311,.2,'triangle',.14); tone(233,.3,'triangle',.14,null,.18); },
+  meh:()=>tone(440,.18,'triangle',.12),
+  skill:()=>[784,988,1175,1568].forEach((f,i)=>tone(f,.22,'triangle',.12,null,.35+i*.08)),
+  blip:()=>tone(660,.12,'sine',.14,880),
+  beat:()=>{ tone(70,.09,'sine',.22,45); tone(62,.09,'sine',.16,40,.16); },
+  fall:()=>tone(320,1,'sawtooth',.12,36),
+  win:()=>[523,659,784,1047,784,1047].forEach((f,i)=>tone(f,.2,'triangle',.14,null,i*.12)),
+};
+function setSound(on){
+  soundOn = on; try { localStorage.setItem('kiw-sound', on?'on':'off'); } catch(e) {}
+  if (on){ try { AC = AC || new (window.AudioContext||window.webkitAudioContext)(); AC.resume(); } catch(e) { soundOn=false; } }
+  const sb=$('sndbtn'); if (sb){ sb.textContent = soundOn ? 'Sound on' : 'Sound off'; sb.setAttribute('aria-pressed',String(soundOn)); }
+  if (soundOn) sfx.blip();
+}
+
+$('sndbtn').onclick = () => setSound(!soundOn);
+$('sndbtn').textContent = soundOn ? 'Sound on' : 'Sound off'; $('sndbtn').setAttribute('aria-pressed',String(soundOn));
+
+/* ---------- shared scoreboard ---------- */
+const esc = t => String(t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function getPid(){ let id=''; try { id = localStorage.getItem('kiw-pid') || ''; } catch(e) {}
+  if (!/^[a-z0-9]{12,40}$/.test(id)){ id=''; const a='abcdefghijklmnopqrstuvwxyz0123456789'; for (let i=0;i<20;i++) id+=a[Math.floor(Math.random()*a.length)]; try { localStorage.setItem('kiw-pid',id); } catch(e) {} }
+  return id; }
+function getName(){ try { return localStorage.getItem('kiw-name') || ''; } catch(e) { return ''; } }
+function setName(n){ try { n ? localStorage.setItem('kiw-name',n) : localStorage.removeItem('kiw-name'); } catch(e) {} }
+async function scoreApi(method, body){
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 9000);
+  try {
+    const r = await fetch(SCORE_API.replace(/\/+$/,'') + '/scores' + (method==='GET' ? '?pid='+getPid() : ''), {method, signal:ctl.signal,
+      headers: body ? {'Content-Type':'application/json'} : undefined, body: body ? JSON.stringify(body) : undefined});
+    return await r.json();
+  } finally { clearTimeout(t); }
+}
+const boardList = rows => rows && rows.length
+  ? `<ol class="sb">${rows.map((r,i)=>`<li class="${r.you?'you':''}"><span>${i+1}</span><b>${esc(r.name)}${r.you?' (you)':''}</b><i>${r.score}</i></li>`).join('')}</ol>`
+  : '<p class="mute">No scores yet. Be the first.</p>';
+async function openBoard(){
+  openSheet(`${sheetHead('Scoreboard')}<p class="mute" id="sbmsg">Loading the top scores…</p><div id="sball"></div>`); $('sheet').classList.add('wide');
+  try { const d = await scoreApi('GET'); if (!$('sball')) return;
+    $('sbmsg').textContent = 'The five best scores on each level. Each player appears once, with their best run.';
+    $('sball').innerHTML = `<div class="sbgrid">${Object.keys(MODES).map(k=>`<div><h4>${MODES[k].name}${k==='daily'?` · ${esc(d.day||'')}`:''}</h4>${boardList(d[k])}</div>`).join('')}</div>`;
+  } catch(e) { if ($('sbmsg')) $('sbmsg').textContent = 'The scoreboard cannot be reached right now. Try again in a moment.'; }
+}
+if (SCORE_API){ $('sbbtn').hidden = false; $('sbbtn').onclick = openBoard; }
+function endBoard(pts, msg){
+  const box = $('sb'); if (!box || !SCORE_API) return;
+  const name = getName(), title = `<b>Scoreboard · ${cfg().name}</b>`;
+  const form = note => { box.innerHTML = `${title}<p class="mute">${note || 'Type a name to put your score on the board. Up to 12 letters, numbers or spaces.'}</p>
+      <div class="walkrow"><input id="pname" maxlength="12" autocomplete="off" placeholder="Your name" aria-label="Your name" value="${esc(name)}"><button class="btn" id="post">Post my score</button></div>`;
+    $('post').onclick = () => { const n = $('pname').value.replace(/\s+/g,' ').trim();
+      if (!/^[A-Za-z0-9 _-]{1,12}$/.test(n)){ form('Use 1 to 12 letters, numbers, spaces, dashes or underscores.'); return; }
+      setName(n); state.posted = null; endBoard(pts); }; };
+  const show = r => { box.innerHTML = `${title}<p class="mute">${r.placed ? `You are on the board as <strong>${esc(name)}</strong>.` : `Posted as <strong>${esc(name)}</strong>. Not in the top five on this level yet.`} <button class="linkbtn" id="rename">Change name</button></p>${boardList(r[state.mode])}`;
+    $('rename').onclick = () => form('Type the name you want to appear on the board.'); };
+  if (msg || !name){ form(msg); return; }
+  if (state.posted){ show(state.posted); return; }
+  box.innerHTML = `${title}<p class="mute">Posting your score…</p>`;
+  scoreApi('POST', {board:state.mode, name, score:pts, pid:getPid()}).then(r => {
+    if (!$('sb')) return;
+    if (r.error === 'name'){ setName(''); endBoard(pts, 'That name is not allowed. Pick a different one.'); return; }
+    if (r.error){ throw new Error(r.error); }
+    state.posted = r; show(r);
+  }).catch(() => { if (!$('sb')) return; $('sb').innerHTML = `${title}<p class="mute">The scoreboard cannot be reached right now.</p><button class="btn ghost" id="retry">Try again</button>`; $('retry').onclick = () => endBoard(pts); });
+}
+
+/* ---------- sheets ---------- */
+let sheetOpen = false;
+function openSheet(html){ $('sheet').classList.remove('wide'); $('sheet').innerHTML = html; $('scrim').hidden = false; sheetOpen = true;
+  $('sheet').querySelectorAll('[data-close]').forEach(b => b.onclick = closeSheet); const f=$('sheet').querySelector('button'); if (f) f.focus(); }
+function closeSheet(){ $('scrim').hidden = true; sheetOpen = false; $('sheet').classList.remove('wide'); }
+$('scrim').addEventListener('click', e => { if (e.target === $('scrim')) closeSheet(); });
+addEventListener('keydown', e => { if (e.key === 'Escape' && sheetOpen) closeSheet(); });
+const sheetHead = t => `<div class="sheethead"><h3>${t}</h3><button class="mini" data-close>Close</button></div>`;
+function openPart(id){
+  const p = P[id], h = Math.round(state.parts[id]), to = EDGES[id].map(N), from = PARTS.filter(x => EDGES[x.id].includes(id)).map(x => x.name);
+  const playing = ['walking','event','result'].includes(state.phase), can = playing && state.budget>=SPOT_COST && h<100;
+  openSheet(`${sheetHead(`${p.name}<em>${p.what}</em>`)}
+    <div class="bigbar ${id}"><i style="width:${h}%"></i></div><p class="hp ${id}">Health ${h} / 100</p>
+    <p>${p.who}</p>
+    <p class="mute">${to.length?`When it gets hurt, the damage spreads to: ${to.join(', ')}.`:'Damage stops here.'} ${from.length?`It gets hurt when these are hurt: ${from.join(', ')}.`:'Nothing else in the body can hurt it.'}</p>
+    <p class="mute">Backups: ${state.lv[id]||0} of 2${pending(id)?` (${pending(id)} more on the way)`:''}. A backup takes ${PRE_LEAD} weeks to arrive. Each one makes every hit on this part ${Math.round(LV_CUT*100)}% weaker for the rest of the year.${state.brittle[id]?` Quick fixes have left it brittle: the next hit is ${Math.round(BRITTLE*state.brittle[id]*100)}% stronger until you build a backup.`:''}</p>
+    <div class="walkrow"><button class="btn" id="patch" ${can?'':'disabled'}>Patch · ${SPOT_COST} cr · +${SPOT_GAIN} health</button>
+    <button class="btn ghost" id="bk" ${playing&&state.budget>=PRE_COST&&(state.lv[id]||0)+pending(id)<2?'':'disabled'}>Order a backup · ${PRE_COST} cr</button></div>
+    ${playing&&!can?`<p class="mute" style="margin-top:8px">${h>=100?'Already at full health.':'Not enough credits.'}</p>`:''}`);
+  $('patch').onclick = () => { spotBuy(id); openPart(id); };
+  $('bk').onclick = () => { buildBackup(id); openPart(id); };
+}
+const HELP = `<ol class="steps">
+  <li><div><b>Keep the robot walking for a year</b>Each body part stands for something AI needs: chips, memory, power, cooling. Tap a part to see what it is.
+    <br><span class="key"><i style="background:var(--green)"></i>fine</span><span class="key"><i style="background:var(--amber)"></i>struggling</span><span class="key"><i style="background:var(--red)"></i>about to fail</span></div></li>
+  <li><div><b>Bad news stops the game</b>Every few weeks a card pops up. It tells you what went wrong in the world and which body part it hurts.</div></li>
+  <li><div><b>Choose what fits the problem</b>The priciest answer is not always the best. Read the story for clues: is it a short blip or a long shortage? One supplier or the whole world? After you choose, the game tells you why it worked or did not.</div></li>
+  <li><div><b>Fixes that last</b>Some choices build a backup, which makes every later hit on that part weaker. Backups take weeks to arrive, so order early. Rushed fixes leave a part brittle, so the next hit is worse.</div></li>
+  <li><div><b>Sound</b>Sound is on to begin with. Turn it off with the Sound button at the top.</div></li>
+  <li><div><b>Collect skills</b>Every smart call teaches a real supply chain idea. Open Skills to see what you have learned. Tap any body part to see what it affects.</div></li>
+  <li><div><b>One sick part makes others sick</b>No cooling hurts memory. No memory hurts the brain. If any part drops to 0, the robot falls over.</div></li>
+  <li><div><b>Watch the radar</b>Between events the game warns you which part is in trouble next. Tap that part and build a backup early, while it is cheap.</div></li>
+  <li><div><b>You are scored on three things</b>Survival (weeks walked), cost (credits spent) and resilience (how much of the body has a backup). The best players balance all three.</div></li>
+</ol>`;
+$('helpbtn').onclick = () => { openSheet(`${sheetHead('Menu')}
+  <h4>Settings</h4><div class="setrow">${document.fullscreenEnabled?'<button class="mini" id="fsbtn">Full screen</button>':''}<button class="mini" id="realbtn">What really happened in 2026</button></div>
+  <h4>How to play</h4>${HELP}
+  <h4>Timeline</h4><div class="legend"><span><i class="d"></i>Bad news arrives</span><span><i class="o"></i>A bill from an earlier choice</span><span><i class="o" style="border-color:var(--green)"></i>A backup arrives</span></div>
+  <h4>How damage spreads</h4><p class="mute">Cooling → Memory → Brain → Legs. Power core → Cooling and Legs. Wiring → Power core and Nervous system. Nervous system → Brain. Eyes → Brain and Memory.</p>
+  <h4>What has happened so far</h4><ol class="loglist">${state.log.slice(0,40).map(l=>`<li><span>WK ${String(l.w).padStart(2,'0')}</span>${l.t}</li>`).join('') || '<li><span>WK 00</span>Nothing yet.</li>'}</ol>
+  <h4>About</h4><p class="mute">Real events link to their sources on each card. Cards marked "What if" are fictional.</p>`);
+  const fb=$('fsbtn'); if (fb) fb.onclick = toggleFS; $('realbtn').onclick = openReal; };
+const MAPPOS = {wiring:[170,34], power:[92,112], nerves:[250,112], cooling:[92,190], memory:[92,268], brain:[196,346], legs:[170,424]};
+function openMap(focus){
+  const down = new Set(); const walk = k => { if (down.has(k)) return; down.add(k); EDGES[k].forEach(walk); }; if (focus) walk(focus);
+  const edge = (a,b) => { const [x1,y1]=MAPPOS[a], [x2,y2]=MAPPOS[b], hot = focus && down.has(a) && down.has(b);
+    const d = (a==='power'&&b==='legs') ? `M${x1-62} ${y1+8} C -6 ${y1+60}, -6 ${y2-40}, ${x2-62} ${y2-6}` : (a==='nerves'&&b==='brain') ? `M${x1} ${y1+22} C ${x1} ${y1+140}, ${x2+70} ${y2-70}, ${x2+30} ${y2-22}` : `M${x1} ${y1+22} L${x2} ${y2-24}`;
+    return `<path class="ed${hot?' hot':''}" d="${d}" marker-end="url(#ar${hot?'h':''})"/>`; };
+  const node = p => { const [x,y]=MAPPOS[p.id]; return `<g class="nd ${p.id}${focus&&down.has(p.id)?' hot':''}" data-part="${p.id}"><rect x="${x-62}" y="${y-22}" width="124" height="44" rx="8"/>
+    <text x="${x-52}" y="${y-4}">${p.name.length>11?p.short:p.name}</text><text class="s" x="${x-52}" y="${y+11}">${p.what}</text><text class="v" x="${x+52}" y="${y-4}" text-anchor="end">${Math.round(state.parts[p.id])}</text></g>`; };
+  openSheet(`${sheetHead('How the chain connects')}
+    <p class="mute">Read it from top to bottom. An arrow means "if this is hurt, that gets hurt too". ${focus?`Red shows everything that can be hurt when the <b>${N(focus).toLowerCase()}</b> takes a hit.`:'Tap a box to inspect that part.'}</p>
+    <svg id="map" viewBox="-14 0 354 452" role="img" aria-label="Map of which parts depend on which">
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#3A4F6B"/></marker>
+      <marker id="arh" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#F87171"/></marker></defs>
+      ${Object.keys(EDGES).map(a=>EDGES[a].map(b=>edge(a,b)).join('')).join('')}${PARTS.map(node).join('')}</svg>
+    <p class="mute" style="margin-top:8px">Copper is in everything, so wiring sits at the top. Data centers need all of it, so legs sit at the bottom.</p>`);
+  $('sheet').querySelectorAll('.nd').forEach(g => g.onclick = () => openPart(g.dataset.part));
+}
+const TOTAL = Object.values(CONCEPTS).filter(c=>!c.secret).length, SECRETS = Object.values(CONCEPTS).filter(c=>c.secret).length;
+const skillCount = () => [...known].filter(k=>CONCEPTS[k] && !CONCEPTS[k].secret).length, secretCount = () => [...known].filter(k=>CONCEPTS[k] && CONCEPTS[k].secret).length;
+let known = new Set(); try { known = new Set(JSON.parse(localStorage.getItem('kiw-skills')||'[]')); } catch(e) {}
+function learn(id){ if (known.has(id)) return false; known.add(id); try { localStorage.setItem('kiw-skills',JSON.stringify([...known])); } catch(e) {}
+  state.newSkills=(state.newSkills||0)+1; $('skn').textContent=skillCount();
+  popQ.push(id); showPop(); return true; }
+const popQ = []; let popBusy = false;
+function showPop(){
+  if (popBusy || !popQ.length) return; popBusy = true;
+  const id = popQ.shift(), p = $('pop');
+  p.innerHTML = `<span>★</span><b>${CONCEPTS[id].secret?'Secret found':'New skill learned'}</b><strong>${CONCEPTS[id].name}</strong><em>${CONCEPTS[id].plain}</em>`;
+  p.classList.add('on'); sfx.skill();
+  const close = () => { if (!p.classList.contains('on')) return; p.classList.remove('on'); clearTimeout(showPop.t); setTimeout(() => { popBusy = false; showPop(); }, 350); };
+  p.onclick = close; showPop.t = setTimeout(close, 3200);
+}
+$('skn').textContent = skillCount(); $('skt').textContent = TOTAL;
+$('skbtn').onclick = () => { const where = Object.fromEntries(Object.entries(SK).map(([e,k])=>[k,EV[e].title]));
+  openSheet(`${sheetHead(`Skills learned: ${skillCount()} of ${TOTAL}`)}
+  <p class="mute">Each skill is a real supply chain idea. You learn one by making the smart call in the situation that teaches it. Skills stay with you between games on this device.</p>
+  <div class="skgrid">${Object.entries(CONCEPTS).filter(([k,c])=>!c.secret).map(([k,c])=> known.has(k) ? `<p class="skill"><b>Learned</b><strong>${c.name}</strong>${c.plain}</p>`
+    : `<p class="skill lock"><b>Not learned yet</b><strong>${c.name}</strong>${c.how || `Make the smart call in "${where[k]}".`}</p>`).join('')}</div>
+  <h4>Secrets found: ${secretCount()} of ${SECRETS}</h4>
+  <div class="skgrid">${Object.entries(CONCEPTS).filter(([k,c])=>c.secret).map(([k,c])=> known.has(k) ? `<p class="skill"><b>Secret</b><strong>${c.name}</strong>${c.plain}</p>` : `<p class="skill lock"><b>Secret</b><strong>? ? ?</strong>Hidden. Keep playing, and try things.</p>`).join('')}</div>`); $('sheet').classList.add('wide'); };
+function toggleFS(){ try { (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch(() => {}); } catch(e) {} }
+const WHEN = {dram:'January to March 2026', helium:'March 2, 2026', bromine:'April 2026', hbm:'Through 2026', xfmr:'Through 2026', abf:'Through 2026', copperreal:'July 2026', ny:'Mid-July 2026', gev:'July 2026', texas:'August 3, 2026', crowd:'November 10, 2026'};
+function openReal(){
+  const mine = new Set((state.sched||[]).map(x=>x.id));
+  openSheet(`${sheetHead('What really happened in 2026')}
+    <p class="mute">These are the real events behind the game. The game's choices and outcomes are made up; the facts below are not.</p>
+    <ol class="real">${EVENTS.filter(e=>e.real).sort((a,b)=>a.week-b.week).map(e=>`<li class="${mine.has(e.id)?'':'out'}"><small>${WHEN[e.id]||'2026'}${mine.has(e.id)?' · in your run':''}</small><b>${e.title}</b>${e.fact}
+      <a href="${e.src}" target="_blank" rel="noopener">Source: ${e.srcName}</a>${e.src2?` · <a href="${e.src2}" target="_blank" rel="noopener">${e.srcName2}</a>`:''}</li>`).join('')}</ol>`);
+  $('sheet').classList.add('wide');
+}
+function fit(){ const st=$('stage'); const lab=!$('bot').classList.contains('nolabels'); let h=Math.max(140,Math.min(st.clientHeight-40, st.clientWidth*(lab?.84:1.1), 640));
+  const small=h<190; if (small) h=Math.max(140,Math.min(st.clientHeight-40, st.clientWidth*1.1)); st.classList.toggle('small',small); st.style.setProperty('--h',h.toFixed(0)+'px'); }
+let labelsOff = false;
+function applyLabels(){ $('bot').classList.toggle('nolabels',labelsOff); $('labels').style.display = (labelsOff || (state && state.phase==='over')) ? 'none' : ''; $('lbl').textContent = labelsOff?'Show labels':'Hide labels'; $('lbl').setAttribute('aria-pressed',String(!labelsOff)); }
+$('lbl').addEventListener('click', e => { e.stopPropagation(); labelsOff = !labelsOff; applyLabels(); fit(); });
+
+/* ---------- rendering ---------- */
+const colorOf = h => h>=70 ? 'var(--green)' : h>=35 ? 'var(--amber)' : 'var(--red)';
+function avg(){ return PARTS.reduce((s,p)=>s+state.parts[p.id],0)/PARTS.length; }
+function speed(){
+  if (state.phase==='intro') return 1;
+  let s = clamp(Math.pow(avg()/100,1.6),.22,1);
+  if (state.parts.power<35) s*=.65;
+  if (state.parts.legs<35) s*=.7;
+  return s;
+}
+function render(){
+  const root = document.documentElement.style;
+  for (const p of PARTS){
+    const h = Math.round(state.parts[p.id]);
+    root.setProperty('--c-'+p.id, colorOf(h));
+    $('v-'+p.id).textContent = h; $('b-'+p.id).style.width = h+'%';
+  }
+  root.setProperty('--glow', (state.parts.power/100).toFixed(2));
+  applyLabels();
+  $('wk').textContent = String(state.week).padStart(2,'0');
+  $('bd').textContent = state.budget; $('sp').textContent = state.spent||0;
+  for (let w=1;w<=52;w++) $('wk-'+w).className = 'wk'+((w-1)%13===0&&w>1?' q':'')+(w<state.week?' done':w===state.week?' now':'');
+  document.querySelectorAll('.mk').forEach(m=>m.remove());
+  const tr = $('track'), put = (w,cls,title) => { const cell=$('wk-'+w); if(!cell) return;
+    const m=document.createElement('span'); m.className='mk '+cls; m.title=title;
+    m.style.left=(cell.offsetLeft+cell.offsetWidth/2)+'px'; tr.appendChild(m); };
+  evs().forEach(e => put(e.week, e.week<=state.week?'past':'', e.week<=state.week?e.title:'Something is coming'));
+  state.queue.filter(f=>!f.done && f.t!=='drain' && f.week<=52).forEach(f => put(f.week, f.t==='backup'?'due ok':'due', f.label));
+  const sy = symptoms();
+  $('symptoms').innerHTML = sy.length ? sy.map(s=>`<span class="chip ${s[1]}">${s[0]}</span>`).join('') : '<span class="chip g">All systems steady</span>';
+  $('rs').textContent = resilience();
+  for (const p of PARTS){ const l=state.lv[p.id]||0, br=state.brittle[p.id]||0;
+    const pd=pending(p.id);
+    $('p-'+p.id).innerHTML = `<i class="${l>0?'on':pd>0?'pend':''}"></i><i class="${l>1?'on':l+pd>1?'pend':''}"></i>${br?'<u title="Brittle from quick fixes">!</u>':''}`; }
+  const rd = $('radar'); if (rd){ const nx=evs().find(e=>e.week>state.week), n=nx?nx.week-state.week:99;
+    rd.innerHTML = n<=cfg().radar ? `<b>On the radar</b>${nx.good?'Good news may be coming for':'Trouble is brewing for'} <strong>${N(nx.hits[0]).toLowerCase()}</strong>, about ${n} week${n>1?'s':''} away. A backup ordered now costs ${PRE_COST} and takes ${PRE_LEAD} weeks to arrive.` : `<b>On the radar</b>All quiet for now.`;
+    rd.className = 'radar'+(n<=cfg().radar?' hot':''); }
+  const sf = $('storyfeed'); if (sf) sf.innerHTML = state.log.slice(0,4).map(l=>`<li><span>WK ${String(l.w).padStart(2,'0')}</span>${l.t}</li>`).join('');
+  const tk = $('tick'); if (tk) tk.textContent = state.log[0] ? `WK ${String(state.log[0].w).padStart(2,'0')} · ${state.log[0].t}` : '';
+  const sb = $('spot'); if (sb) sb.disabled = state.budget<SPOT_COST || weakest().h>=100;
+}
+function symptoms(){
+  const s=[], q=state.parts, lv=h=>h<35?'r':'a';
+  if (state.phase==='over') return [['Collapsed','r']];
+  if (q.brain<60) s.push([q.brain<35?'Wrong-way steps':'Eyes flickering',lv(q.brain)]);
+  if (q.memory<60) s.push(['Stumbling',lv(q.memory)]);
+  if (q.nerves<60) s.push(['Twitching',lv(q.nerves)]);
+  if (q.power<60) s.push([q.power<35?'Power fading':'Lights dim',lv(q.power)]);
+  if (q.cooling<60) s.push([q.cooling<30?'Overheating, must rest':'Running hot',lv(q.cooling)]);
+  if (q.wiring<60) s.push(['Sparking',lv(q.wiring)]);
+  if (q.eyes<60) s.push(['Blurred vision',lv(q.eyes)]);
+  if (q.legs<60) s.push(['Limping',lv(q.legs)]);
+  return s;
+}
+function weakest(){ return PARTS.map(p=>({id:p.id,h:state.parts[p.id]})).sort((a,b)=>a.h-b.h)[0]; }
+function log(t){ state.log.unshift({w:state.week,t}); }
+
+function shareText(sc, won, f){
+  const stars = n => '★'.repeat(n)+'☆'.repeat(3-n);
+  return [`KEEP IT WALKING · the AI supply chain survival game`,
+    `${sc.rank} (${cfg().name}${state.mode==='daily'?' '+state.day:''})`,
+    `${stars(sc.st.surv)} Survival: ${sc.weeks}/52 weeks${won?'':` · ${P[f].name.toLowerCase()} failed`}`,
+    `${stars(sc.st.cost)} Cost: ${state.spent} of ${sc.total} credits`,
+    `${stars(sc.st.res)} Resilience: ${sc.res}% backed up`,
+    `Smart calls ${state.smart||0}/${state.calls||0} · Skills ${skillCount()}/${TOTAL} · Score ${sc.pts}`,
+    `Can you keep the robot walking?`].join('\n');
+}
+function firstTime(){ try { return !localStorage.getItem('kiw-seen'); } catch(e) { return false; } }
+function renderDesk(){
+  const d = $('desk'); d.scrollTop = 0;
+  if (state.phase==='intro'){
+    d.innerHTML = `<span class="tag real">THE AI SUPPLY CHAIN SURVIVAL GAME</span>
+      <h3>Keep this robot walking for one year.</h3>
+      <p>Its body is made of everything AI needs: chips, memory, power, cooling. When something goes wrong in the real world, the matching part gets hurt. Pick a level to begin.</p>
+      <div class="opts">${Object.entries(MODES).map(([k,m])=>`<button class="opt" data-m="${k}"><span class="top2"><span>${m.name}</span><span class="cost">${m.budget} cr / quarter</span></span><small>${m.desc}</small></button>`).join('')}</div>`;
+    d.querySelectorAll('.opt').forEach(b => b.onclick = () => { state.mode=b.dataset.m; state.day=TODAY; state.seed = state.mode==='daily' ? dayHash() : null; state.sched=makeSched(); state.budget=cfg().budget; state.phase='walking'; state.week=1; say('Off we go. One year, no falling over.'); log(`The walk begins on ${cfg().name}.`); renderDesk(); render(); });
+  } else if (state.phase==='walking'){
+    d.innerHTML = `<p class="radar" id="radar"></p>
+      <h4 class="dh">The story so far</h4><ol class="loglist" id="storyfeed"></ol>
+      <div class="walkrow"><p>Tap any body part to patch it or build a backup.</p>
+      <button class="btn ghost" id="spot">Patch the weakest part · ${SPOT_COST} cr</button></div>`;
+    $('spot').onclick = () => spotBuy();
+  } else if (state.phase==='event'){
+    const ev = evs().find(e=>e.id===state.eventId), part=ev.hits[0], h=state.hist[part], l=state.lv[part]||0, br=state.brittle[part]||0;
+    const past = l>0 ? `<p class="echo good"><b>Your earlier choice pays off</b>${h?`In week ${h.w} you chose to ${h.name.charAt(0).toLowerCase()+h.name.slice(1)}. `:''}That backup makes this hit ${Math.round(LV_CUT*l*100)}% weaker.</p>`
+      : br>0 ? `<p class="echo bad"><b>Your earlier choice comes back</b>${h?`In week ${h.w} you chose to ${h.name.charAt(0).toLowerCase()+h.name.slice(1)}. `:''}Quick fixes left the ${N(part).toLowerCase()} brittle, so this hit is ${Math.round(BRITTLE*br*100)}% stronger.</p>` : '';
+    if (ev.good) ev.options = goodOptions(ev);
+    if (!state.order || state.order.id!==ev.id || state.order.idx.length!==ev.options.length) state.order={id:ev.id, idx:shuffle(ev.options.map((_,i)=>i))};
+    d.innerHTML = `<span class="tag ${ev.good?'win':ev.real?'real':'whatif'}">${ev.good?'WHAT IF · GOOD NEWS':ev.real?'REAL EVENT':'WHAT IF · FICTIONAL'}</span>
+      <h3>${ev.title}</h3>
+      <p class="plain"><b>Think of it like this</b>${ev.plain}</p>
+      <p>${ev.body}</p>
+      ${ev.real?`<p class="fact"><b>Real-world fact</b>${ev.fact} <a href="${ev.src}" target="_blank" rel="noopener">Source: ${ev.srcName}</a>${ev.src2?` · <a href="${ev.src2}" target="_blank" rel="noopener">${ev.srcName2}</a>`:''}</p>`:''}
+      ${ev.good?'':past}
+      <div class="hits">${ev.good?'Helps':'Hurts'} ${ev.hits.map((x,i)=>`${i?'<span>then</span>':''}<span class="chip ${ev.good?'g':'r'}">${P[x].name}</span>`).join('')}</div>
+      <p class="tip"><b>Before you choose</b>${ev.good?'Good news can still cost you. Is the protection you bought earlier still worth what you pay for it? Check the timeline for what is still to come. </p><p hidden>':''}The priciest answer is not always the best one. Read the story for clues. Is this a short blip or a long shortage? Is one supplier in trouble, or the whole world?</p>
+      <div class="opts">${state.order.idx.map(i=>{ const o=ev.options[i]; return `<button class="opt" data-i="${i}" ${o.cost>state.budget?'disabled':''}>
+        <span class="top2"><span>${o.name}</span><span class="cost">${o.cost?o.cost+' cr':'free'}</span></span><small>${o.idea||IDEA[o.kind]}</small></button>`; }).join('')}
+        ${ev.options.every(o=>o.cost>state.budget)?`<button class="opt" data-i="-1"><span class="top2"><span>Do nothing</span><span class="cost">free</span></span><small>You cannot afford any of the others.</small></button>`:''}</div>`;
+    d.querySelectorAll('.opt').forEach(b => b.onclick = () => choose(ev, +b.dataset.i<0 ? BROKE : ev.options[+b.dataset.i]));
+  } else if (state.phase==='result'){
+    const r=state.result, G={best:['win','SMART CALL','The right tool for this problem.'], ok:['real','IT WORKED','But there was a better move.'], trap:['end','WRONG TOOL','This did not fit the problem.'],
+      lucky:['whatif','YOU GOT LUCKY','The gamble paid off. It will not always.'], unlucky:['whatif','GOOD BET, BAD LUCK','Waiting was reasonable here. The dice disagreed.']}[r.grade];
+    d.innerHTML = `<span class="tag ${G[0]}">${G[1]}</span>
+      <h3>${G[2]}</h3>
+      <p class="mute">${r.title}: you chose to ${r.name.charAt(0).toLowerCase()+r.name.slice(1)}.</p>
+      <div class="stats"><div><small>${N(r.part)}</small><b class="${r.heal?'pos':''}">${r.heal?'+'+r.heal:r.dmg?'−'+r.dmg:'no damage'}</b></div>
+        ${r.refund?`<div><small>Cash back</small><b class="pos">+${r.refund} cr</b></div>`:''}${r.dropped?'<div><small>Lasting</small><b class="neg">Backup given up</b></div>':''}
+        ${r.lv?`<div><small>Lasting</small><b class="pos">Backup in ${r.lead} wks</b></div>`:''}${r.brittle?'<div><small>Lasting</small><b class="neg">Left brittle</b></div>':''}
+        ${r.later?`<div><small>Next quarter</small><b>−${r.later} cr</b></div>`:''}${r.drain?'<div><small>Coming weeks</small><b class="neg">Keeps draining</b></div>':''}</div>
+      <p class="verdict"><b>Why:</b> ${r.why}</p>
+      ${r.skill ? (r.skill.earned ? '' : `<p class="skill missed"><b>Skill missed</b><strong>${CONCEPTS[r.skill.id].name}</strong>${CONCEPTS[r.skill.id].plain}</p>`) : ''}
+      ${r.best?`<p class="mute"><b>The best move was to ${r.best.charAt(0).toLowerCase()+r.best.slice(1)}.</b> ${r.bestWhy}</p>`:''}
+      ${r.lv?`<p class="mute">The backup takes ${r.lead} weeks to arrive. After that, every hit on the ${N(r.part).toLowerCase()} is ${Math.round(LV_CUT*100)}% weaker.</p>`:''}${r.brittle?`<p class="mute">Nothing was fixed underneath, so the next hit on the ${N(r.part).toLowerCase()} will be ${Math.round(BRITTLE*100)}% stronger.</p>`:''}
+      <button class="btn" id="cont">Keep walking</button>`;
+    $('cont').onclick = () => { state.phase='walking'; state.result=null; renderDesk(); render(); };
+  } else {
+    const won = state.phase==='won', f = won ? weakest().id : state.failed, sc = state.sc || (state.sc = score());
+    d.innerHTML = `<span class="tag ${won?'win':'end'}">${won?'STILL WALKING':'COLLAPSED'}</span>
+      <h3>${won?'52 weeks. The robot is still on its feet.':`The ${P[f].name.toLowerCase()} gave out in week ${state.week}.`}</h3>
+      <div class="grades">
+        <div><small>Survival</small><b>${sc.weeks} / 52 weeks</b><span class="stars">${'★'.repeat(sc.st.surv)}${'☆'.repeat(3-sc.st.surv)}</span></div>
+        <div><small>Cost</small><b>${state.spent} of ${sc.total} cr</b><span class="stars">${'★'.repeat(sc.st.cost)}${'☆'.repeat(3-sc.st.cost)}</span></div>
+        <div><small>Resilience</small><b>${sc.res}% backed up</b><span class="stars">${'★'.repeat(sc.st.res)}${'☆'.repeat(3-sc.st.res)}</span></div></div>
+      <p class="verdict"><b>${sc.rank}.</b> ${sc.verdict}</p>
+      <div class="stats"><div><small>${won?'Weakest part':'Failed first'}</small><b>${P[f].name}</b></div><div><small>Smart calls</small><b>${state.smart||0} of ${state.calls||0}</b></div><div><small>Skills</small><b>${state.newSkills?`+${state.newSkills} new · `:''}${skillCount()} of ${TOTAL}</b></div><div><small>Score</small><b>${sc.pts}</b></div></div>
+      <h4 class="dh">Your year</h4><ol class="loglist">${state.story.map(x=>`<li><span>WK ${String(x.w).padStart(2,'0')}</span><div>${x.title}: ${x.name.charAt(0).toLowerCase()+x.name.slice(1)}${x.grade==='best'?' <span class="pos">✓ smart call</span>':x.grade==='trap'?' <span class="neg">✗ wrong tool</span>':x.grade==='lucky'?' (got lucky)':x.grade==='unlucky'?' (unlucky)':''}</div></li>`).join('')||'<li><span>—</span>No decisions made.</li>'}</ol>
+      <p style="margin-top:10px"><b>What this says about the real world:</b> ${won?LESSONS.win:LESSONS[f]}</p>
+      <div class="sbbox" id="sb" ${SCORE_API?'':'hidden'}></div>
+      <div class="share"><b>Share your result</b><pre id="sharetxt">${shareText(sc,won,f)}</pre>
+        <div class="walkrow"><button class="btn" id="again">Walk again</button><button class="btn ghost" id="copy">Copy result</button><button class="btn ghost" id="real2">What really happened</button></div></div>
+      <p class="scoreline" style="margin-top:10px">${sc.record?'New best on this level. ':sc.best?`Your best on this level: ${sc.best}. `:''}Score = 10 per week survived, 3 per point of resilience, 20 per smart call${won?', plus 1 for every credit you did not spend':'. Finish the year to earn points for unspent credits'}.</p>`;
+    $('again').onclick = () => { state=fresh(); resetAnim(); renderDesk(); render(); };
+    $('real2').onclick = openReal;
+    endBoard(sc.pts);
+    $('copy').onclick = () => { const txt=$('sharetxt').textContent, done=()=>{ $('copy').textContent='Copied'; setTimeout(()=>{ const c=$('copy'); if (c) c.textContent='Copy result'; },1800); };
+      const fallback=()=>{ const r=document.createRange(); r.selectNodeContents($('sharetxt')); const sel=getSelection(); sel.removeAllRanges(); sel.addRange(r); $('copy').textContent='Selected: press copy'; };
+      try { navigator.clipboard.writeText(txt).then(done, fallback); } catch(e) { fallback(); } };
+  }
+}
+
+const QUIPS = {brain:['Uh… which way is forward?','I had a thought. It left.'], memory:['Wait, what was I doing?','Who are you again?'],
+  nerves:['My arm is doing its own thing.','Twitch. Twitch.'], power:['Feeling a bit… faint.','Who turned the lights down?'],
+  cooling:['Is it hot in here?','I need a sit-down.'], wiring:['Zzzt! That tingled.','Sparks are bad, right?'], legs:['Ow. My knees.','Walking is hard, actually.'], eyes:['Everything looks fuzzy.','Who smeared the lens?']};
+function say(t){ const b=$('say'); b.textContent=t; b.classList.add('on'); clearTimeout(say.t); say.t=setTimeout(()=>b.classList.remove('on'),2400); }
+function score(){ const total=cfg().budget*4, won=state.phase==='won', weeks=won?52:state.week-1, res=resilience(), share=state.spent/total;
+  const pts=weeks*10+(won?total-state.spent:0)+res*3+(state.smart||0)*20;
+  const st = {surv: won?3:weeks>=40?2:1, cost: share<=.5?3:share<=.75?2:1, res: res>=55?3:res>=28?2:1};
+  const [rank,verdict] = !won ? ['Fell over','The year beat you this time. Look at which part failed, and protect it earlier next run.']
+    : res<28 ? ['Lucky gambler','You made it, but with almost no backups. One more shock would have floored you. Cheap is not the same as safe.']
+    : st.cost===1 ? ['Fortress builder','Nothing could knock you over, and you paid a lot for it. Could fewer, better-aimed backups have done the job?']
+    : st.res===3 && st.cost>=2 ? ['Master planner','You survived, spent with care and built real backups. That is the balance real companies chase.']
+    : ['Steady hand','A solid year. You balanced cost and safety without going all-in on either.'];
+  const bk='kiw-best-'+state.mode+(state.mode==='daily'?'-'+state.day:'');
+  let best=0; try{ best=+localStorage.getItem(bk)||0; if(pts>best) localStorage.setItem(bk,pts); }catch(e){}
+  return {total,weeks,pts,rank,verdict,res,st,best,record:pts>best}; }
+
+/* ---------- game rules ---------- */
+function flash(part, amount, up){
+  const row=$('row-'+part), d=$('d-'+part);
+  d.textContent=(up?'+':'−')+Math.round(amount);
+  row.classList.remove('hit','up'); void row.offsetWidth; row.classList.add(up?'up':'hit');
+  if (!up){ $('bot').dataset.spot=part; clearTimeout(flash.t); flash.t=setTimeout(()=>delete $('bot').dataset.spot,500); }
+}
+function hit(part, amount, direct){
+  if (state.phase==='over'||state.phase==='won'||state.phase==='intro') return;
+  if (direct!=='wear') amount*=mult(part);
+  amount=Math.round(amount); if (amount<=0) return;
+  state.parts[part]=Math.max(0,state.parts[part]-amount);
+  if (state.parts[part]>0 && state.parts[part]<=5) state.close=true;
+  flash(part,amount);
+  if (amount>=8) sfx.zap();
+  if (amount>=8 && state.parts[part]>0) say(QUIPS[part][Math.floor(Math.random()*2)]);
+  if (state.parts[part]<=0){ say('Shutting… down…'); sfx.fall(); state.failed=part; state.phase='over'; log(`${P[part].name} failed. The robot collapses.`); renderDesk(); render(); return; }
+  const spill=amount*SPILL;
+  if (direct===true) state.lastHit=part;
+  if (spill>=2 && EDGES[part].length) learn('ripple');
+  if (spill>=2) for (const child of EDGES[part]){ ripple(part,child); setTimeout(()=>hit(child,spill,false),RM?150:560); }
+  render();
+}
+function choose(ev,opt){
+  const part=ev.hits[0], isWait=opt.kind==='wait', lucky = isWait && opt.luck!=null && rnd()<opt.luck;
+  const dmg = lucky ? 0 : Math.round(ev.base*ev.sev*cfg().dmg*mult(part)*(1-opt.block));
+  state.budget-=opt.cost; state.spent+=opt.cost;
+  if (opt.later) state.queue.push({t:'budget', amount:-opt.later, label:`${ev.title}: contract payment`, week:Math.floor((state.week-1)/13+1)*13+1, done:false});
+  if (isWait && !lucky && !ev.good) state.queue.push({t:'drain', part, amount:5, len:6, label:`${N(part)} keeps getting worse`, week:state.week+1, done:false});
+  log(`${ev.title}: you chose to ${opt.name.charAt(0).toLowerCase()+opt.name.slice(1)}${opt.cost?` (−${opt.cost} cr)`:''}.`);
+  state.hist[part]={w:state.week, name:opt.name, kind:opt.kind, title:ev.title};
+  const best = ev.options.find(x=>x.verdict==='best' && x.cost<=state.budget+opt.cost) || ev.options.find(x=>x.verdict==='best');
+  const grade = isWait ? (opt.verdict==='best' ? (lucky?'best':'unlucky') : (lucky?'lucky':'trap')) : opt.verdict;
+  state.calls=(state.calls||0)+1; if (opt.verdict==='best') state.smart=(state.smart||0)+1;
+  state.story.push({w:state.week, title:ev.title, name:opt.name, kind:opt.kind, grade});
+  setTimeout(()=>({best:sfx.good, lucky:sfx.good, trap:sfx.bad, unlucky:sfx.bad, ok:sfx.meh})[grade](), 450);
+  const lead = opt.lv ? (LEAD[opt.kind]||6) : 0, sk = SK[ev.id], earned = opt.verdict==='best', isNew = earned && sk ? learn(sk) : false;
+  state.result={heal:opt.heal||0, refund:opt.refund||0, dropped:!!opt.drop, good:!!ev.good, title:ev.title, name:opt.name, part, dmg, grade, why:opt.why, lead, skill:sk?{id:sk,earned,isNew}:null, lv:!!opt.lv, brittle:!!opt.brittle, later:opt.later||0, drain:isWait&&!lucky&&!ev.good, best:opt===best?null:best.name, bestWhy:opt===best?null:best.why};
+  state.phase='result'; state.eventId=null;
+  if (ev.good){ say('Finally, some good news.'); } else if (lucky){ say('Phew. It blew over.'); state.lucks=(state.lucks||0)+1; if (state.lucks>=3) learn('gambler'); } else hit(part, ev.base*ev.sev*cfg().dmg*(1-opt.block), true);
+  if (opt.lv && (state.lv[part]||0)+pending(part)<2) state.queue.push({t:'backup', part, week:state.week+lead, label:`The backup for the ${N(part).toLowerCase()} is now in place`, done:false});
+  if (opt.brittle){ state.brittle[part]=(state.brittle[part]||0)+1; }
+  if (opt.heal){ state.parts[part]=Math.min(100,state.parts[part]+opt.heal); flash(part,opt.heal,true); }
+  if (opt.refund){ state.budget+=opt.refund; state.spent=Math.max(0,state.spent-opt.refund); }
+  if (opt.drop && (state.lv[part]||0)>0) state.lv[part]--;
+  if (state.phase==='result') renderDesk();
+  render();
+}
+function buildBackup(id){
+  const playing = ['walking','event','result'].includes(state.phase);
+  if (!playing || state.budget<PRE_COST || (state.lv[id]||0)+pending(id)>=2) return;
+  state.budget-=PRE_COST; state.spent+=PRE_COST; learn('proactive');
+  state.queue.push({t:'backup', part:id, week:state.week+PRE_LEAD, label:`The backup for the ${N(id).toLowerCase()} is now in place`, done:false});
+  state.hist[id]={w:state.week, name:'Build a backup ahead of time', kind:'backup', title:'a quiet week'};
+  state.story.push({w:state.week, title:`Quiet week`, name:`Build a backup for ${N(id).toLowerCase()}`, kind:'backup'});
+  say('Good thinking.'); sfx.blip(); log(`You ordered a backup for the ${N(id).toLowerCase()} before anything went wrong (−${PRE_COST} cr). It arrives in ${PRE_LEAD} weeks.`); render();
+}
+function spotBuy(id){
+  const w = id ? {id, h:state.parts[id]} : weakest();
+  if (!['walking','event','result'].includes(state.phase) || state.budget<SPOT_COST || w.h>=100) return;
+  state.budget-=SPOT_COST; state.spent+=SPOT_COST; say('Ahh. Much better.'); sfx.blip(); state.parts[w.id]=Math.min(100,w.h+SPOT_GAIN);
+  flash(w.id,SPOT_GAIN,true); log(`Patched ${P[w.id].name.toLowerCase()} (−${SPOT_COST} cr).`); render();
+}
+function nextWeek(){
+  state.week++;
+  if (state.week>52){ state.week=52; state.phase='won'; sfx.win(); learn('tradeoff'); if (state.spent<150) learn('penny'); if (PARTS.every(p=>state.parts[p.id]>=80)) learn('iron'); if (state.close) learn('close'); say('We made it. A whole year!'); log('Week 52 complete.'); renderDesk(); render(); return; }
+  if ((state.week-1)%13===0){ state.budget=Math.min(cfg().budget+50,state.budget+cfg().budget); log(`New quarter: +${cfg().budget} credits.`); }
+  for (const f of state.queue){
+    if (f.done||state.phase==='over') continue;
+    if (f.t==='drain'){ if (state.week>=f.week && state.week<f.week+f.len){ if(state.week===f.week) log(f.label+'.'); hit(f.part,f.amount,true); } if (state.week>=f.week+f.len-1) f.done=true; continue; }
+    if (f.week!==state.week) continue;
+    f.done=true;
+    if (f.t==='hit'){ log(f.label+'.'); hit(f.part,f.amount,true); }
+    else if (f.t==='budget'){ state.spent+=Math.min(state.budget,-f.amount); state.budget=Math.max(0,state.budget+f.amount); log(`${f.label}: ${f.amount} cr.`); }
+    else if (f.t==='backup'){ state.lv[f.part]=Math.min(2,(state.lv[f.part]||0)+1); state.brittle[f.part]=0; log(f.label+'.'); say('Backup online.'); sfx.blip(); if (PARTS.every(p=>(state.lv[p.id]||0)>=1)) learn('fortress'); }
+    else if (f.t==='bill'){ if (state.budget>=f.amount){ state.budget-=f.amount; state.spent+=f.amount; log(`${f.label} paid: −${f.amount} cr.`); } else { log(`${f.label} unpaid.`); hit(f.part,f.penalty,true); } }
+  }
+  if (state.phase==='over') return;
+  // parts heal a little each week; rising demand wears one of them down
+  if (state.week%2===0) for (const p of PARTS) state.parts[p.id]=Math.min(100,state.parts[p.id]+REGEN);
+  const worn=PARTS[Math.floor(rnd()*PARTS.length)].id; hit(worn,3,'wear');
+  if (state.phase==='over') return;
+  const ev=evs().find(e=>e.week===state.week && !state.seen.includes(e.id));
+  if (ev){ state.seen.push(ev.id); state.phase='event'; state.eventId=ev.id; (ev.good?sfx.good:sfx.alarm)(); log(ev.good?`Good news: ${ev.title.charAt(0).toLowerCase()+ev.title.slice(1)}.`:`${ev.title} hits.`); renderDesk(); }
+  render();
+}
+
+/* ---------- animation ---------- */
+const rig=$('rig'), upper=$('upper'), head=$('head'), fx=$('fx'), rip=$('rip'), eye=$('eye'), core=$('core');
+const J = {thighF:$('thighF'),shinF:$('shinF'),thighB:$('thighB'),shinB:$('shinB'),armF:$('armF'),armB:$('armB'),foreF:$('foreF'),foreB:$('foreB')};
+const fan=$('fan'), ringp=$('ringp'), ant=$('ant'), die=$('die'), bot=$('bot'), leds=[...document.querySelectorAll('.memled')], racks=[...document.querySelectorAll('.rack')];
+let fanA=0, ringA=0, flow=0, nflow=0, stepSign=true, beatT=0, danceT=0;
+let phi=0, amp=0, gx=0, last=performance.now(), collapse=0, bodyY=0;
+let stumbleT=0, stumbleCd=3, restT=0, restCd=4, wrongT=0, wrongCd=4, twT=0, twCd=1, twA=0, twH=0, eyeT=0, steamAcc=0, sparkAcc=0;
+const parts=[], ripples=[];
+function resetAnim(){ collapse=0; stumbleT=restT=wrongT=0; parts.splice(0).forEach(p=>p.el.remove()); ripples.splice(0).forEach(r=>r.el.remove()); }
+function setPose(o){
+  rig.setAttribute('transform',`translate(0 ${o.y.toFixed(2)})`);
+  upper.setAttribute('transform',`rotate(${o.tilt.toFixed(2)} 120 182)`);
+  head.setAttribute('transform',`rotate(${o.head.toFixed(2)} 120 78)`);
+  J.thighF.setAttribute('transform',`rotate(${o.tF.toFixed(2)} 126 182)`); J.shinF.setAttribute('transform',`rotate(${o.kF.toFixed(2)} 126 228)`);
+  J.thighB.setAttribute('transform',`rotate(${o.tB.toFixed(2)} 114 182)`); J.shinB.setAttribute('transform',`rotate(${o.kB.toFixed(2)} 114 228)`);
+  J.armF.setAttribute('transform',`rotate(${o.aF.toFixed(2)} 104.5 96)`); J.armB.setAttribute('transform',`rotate(${o.aB.toFixed(2)} 104 96)`);
+  J.foreF.setAttribute('transform',`rotate(${o.eF.toFixed(2)} 104.5 131)`); J.foreB.setAttribute('transform',`rotate(${o.eB.toFixed(2)} 104 130)`);
+}
+const KNEEL={y:46,tilt:16,head:24,tF:-85,kF:85,tB:-20,kB:100,aF:12,aB:6,eF:-4,eB:-4};
+function spawn(kind,x,y){
+  if (parts.length>46) return;
+  const el=document.createElementNS(NS,'circle'); fx.appendChild(el);
+  const p = kind==='steam'
+    ? {el,x,y,vx:-8-Math.random()*14,vy:-26-Math.random()*22,g:-6,life:1.3,max:1.3,r:2.5,gr:7,col:'#C9D6E6',o:.5}
+    : {el,x,y,vx:(Math.random()-.5)*120,vy:-40-Math.random()*90,g:420,life:.45,max:.45,r:1.6,gr:-1.5,col:'#FBBF24',o:1};
+  el.setAttribute('fill',p.col); parts.push(p);
+}
+function ripple(a,b){
+  if (RM) return;
+  const el=document.createElementNS(NS,'circle'); el.setAttribute('r',4.5); el.setAttribute('fill','#fff');
+  el.setAttribute('style','filter:drop-shadow(0 0 5px #22D3EE) drop-shadow(0 0 10px #F87171)'); rip.appendChild(el);
+  ripples.push({el,a:P[a].at,b:P[b].at,t:0});
+}
+function ring(at){
+  const el=document.createElementNS(NS,'circle'); el.setAttribute('fill','none'); el.setAttribute('stroke','#F87171'); el.setAttribute('stroke-width',2); rip.appendChild(el);
+  ripples.push({el,a:at,b:at,t:0,ring:true});
+}
+function frame(now){
+  const dt=Math.min(.05,(now-last)/1000); last=now;
+  const q=state.parts, ph=state.phase, live=ph==='walking' && !sheetOpen;
+  if (ph!=='over' && !sheetOpen && now-lastInput>15000 && now-lastChat>14000){ lastChat=now;
+    const pool = ph==='intro' ? IDLE.intro : (ph==='event'||ph==='result') ? IDLE.think : IDLE.walk; say(pool[Math.floor(Math.random()*pool.length)]); }
+  const over=ph==='over';
+  // timers that change gait
+  if (live){
+    if (q.cooling<30){ restCd-=dt; if (restCd<=0&&restT<=0){ restT=1.5; restCd=4.5+Math.random()*3; } }
+    if (q.brain<35){ wrongCd-=dt; if (wrongCd<=0){ wrongT=.7; wrongCd=3.5+Math.random()*3; } }
+    if (q.memory<60){ stumbleCd-=dt; if (stumbleCd<=0){ stumbleT=.45; stumbleCd=(q.memory<35?1.6:3)+Math.random()*2.5; } }
+    if (q.nerves<60){ twCd-=dt; if (twCd<=0){ twT=.13; twA=(Math.random()-.5)*26; twH=(Math.random()-.5)*10; twCd=(q.nerves<35?.3:.8)+Math.random(); } }
+  }
+  restT=Math.max(0,restT-dt); wrongT=Math.max(0,wrongT-dt); stumbleT=Math.max(0,stumbleT-dt); twT=Math.max(0,twT-dt);
+  const moving=(live||ph==='intro') && restT<=0 && stumbleT<=0;
+  const sp=speed(), dir=wrongT>0?-1:1;
+  if (live && moving && dir>0){ state.prog+=dt*1000/(WEEK_MS/Math.max(sp,.35))*(state.sched&&state.week>state.sched[state.sched.length-1].week+2?2.2:1); if (state.prog>=1){ state.prog=0; nextWeek(); } }
+
+  if (!RM){
+    amp+=((moving?1:0)-amp)*Math.min(1,dt*9);
+    const limp=ph==='intro'?0:clamp((60-q.legs)/60,0,1);
+    const s=Math.sin(phi), c=Math.cos(phi);
+    if (moving && live && (s>=0)!==stepSign){ stepSign=(s>=0); sfx.step(); }
+    if (live && q.power<60){ beatT-=dt; if (beatT<=0){ sfx.beat(); beatT=.8+(60-q.power)/60*1.4; } }
+    phi+=dt*6.2*sp*dir*(moving?1:0)*(1-.45*limp*Math.max(0,-c));
+    if (moving){ gx-=dt*120*sp*dir; $('ground').style.backgroundPositionX=gx.toFixed(1)+'px'; $('sky').style.backgroundPositionX=(gx*.25).toFixed(1)+'px'; }
+    const A=26*amp, weak=ph==='intro'?1:clamp(q.wiring/60,.35,1);
+    const st=stumbleT>0?Math.sin((1-stumbleT/.45)*Math.PI):0;
+    const hot=restT>0?1:0;
+    let o={
+      y:95*(1-Math.cos(A*s*Math.PI/180))+limp*6*amp*Math.max(0,-c)+st*4+hot*5,
+      tilt:3*amp+limp*8*amp*Math.max(0,-c)+st*15-(wrongT>0?9:0)+hot*10,
+      head:1.5*Math.sin(phi*2)*amp+(twT>0?twH:0)+st*8+hot*12+(ph!=='intro'&&q.brain<35?6:0),
+      tF:-A*s*(1-.45*limp), kF:48*amp*Math.max(0,c)*(1-.5*limp)+hot*10,
+      tB:A*s, kB:48*amp*Math.max(0,-c)+hot*10,
+      aF:A*.95*s*weak+(twT>0?twA:0)+hot*6, aB:-A*.95*s*weak-(twT>0?twA*.6:0),
+      eF:-(9+20*amp*Math.max(0,-s))*weak, eB:-(9+20*amp*Math.max(0,s))*weak,
+    };
+    if (danceT>0 && !over){ danceT-=dt; const w=Math.sin(now/90); o.aF=-150+28*w; o.aB=-150-28*w; o.eF=-25; o.eB=-25; o.y+=4*Math.abs(Math.sin(now/120)); o.tilt=7*Math.sin(now/180); o.head=12*Math.sin(now/140); }
+    collapse+=((over?1:0)-collapse)*Math.min(1,dt*(over?4.5:20));
+    if (collapse>.002){ const e=collapse*collapse*(3-2*collapse); for (const k in o) o[k]=o[k]+(KNEEL[k]-o[k])*e; }
+    bodyY=o.y; setPose(o);
+    // eyes and core
+    eyeT-=dt;
+    if (eyeT<=0){ eyeT=.07;
+      const fl=ph==='intro'?0:clamp((60-q.brain)/60,0,1);
+      eye.setAttribute('opacity', over?.08 : Math.random()<fl*.5 ? .12 : 1);
+      eye.setAttribute('width', over?18 : (Math.sin(now/1700)>.985?2:18*(ph==='intro'?1:clamp(q.eyes/60,.35,1))));
+      const li=Math.floor(now/150)%6, forget=ph==='intro'?0:clamp((60-q.memory)/60,0,1);
+      leds.forEach((l,i)=>l.setAttribute('opacity', over?.1 : (i===li && Math.random()>forget*.8) ? 1 : .22));
+      racks.forEach(l=>l.setAttribute('opacity', over?.1 : Math.random()<.75?1:.25));
+    }
+    const beat=Math.pow(Math.max(0,Math.sin(now/1000*(2+3.5*q.power/100))),6);
+    core.setAttribute('r',(over?3:5.2+2.6*beat).toFixed(2));
+    if (!over){
+      fanA+=dt*(restT>0?90:120+620*q.cooling/100); fan.setAttribute('transform',`rotate(${(fanA%360).toFixed(1)} 71.5 115)`);
+      ringA+=dt*(25+190*q.power/100); ringp.setAttribute('transform',`rotate(${(ringA%360).toFixed(1)} 134 143)`);
+      flow-=dt*(4+26*q.wiring/100); nflow-=dt*(4+30*q.nerves/100);
+      bot.style.setProperty('--flow',flow.toFixed(1)); bot.style.setProperty('--nflow',nflow.toFixed(1));
+      ant.setAttribute('opacity',(.35+.65*Math.max(0,Math.sin(now/420))).toFixed(2));
+      die.setAttribute('opacity',(.45+.55*Math.abs(Math.sin(now/260*(.4+q.brain/100)))).toFixed(2));
+    }
+    // particles
+    if (!over && ph!=='intro'){
+      if (q.cooling<60){ steamAcc+=dt*(restT>0?30:(60-q.cooling)/60*16+2); while(steamAcc>=1){ steamAcc--; spawn('steam',64+Math.random()*14,94+bodyY); } }
+      if (q.wiring<60){ sparkAcc+=dt*((60-q.wiring)/60*14+1.5); while(sparkAcc>=1){ sparkAcc--; const j=[[104.5,94],[104.5,131],[126,228],[121,183]][Math.floor(Math.random()*4)]; for(let i=0;i<3;i++) spawn('spark',j[0],j[1]+bodyY); } }
+    }
+    for (let i=parts.length-1;i>=0;i--){ const p=parts[i]; p.life-=dt;
+      if (p.life<=0){ p.el.remove(); parts.splice(i,1); continue; }
+      p.vy+=p.g*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; const k=1-p.life/p.max;
+      p.el.setAttribute('cx',p.x.toFixed(1)); p.el.setAttribute('cy',p.y.toFixed(1)); p.el.setAttribute('r',Math.max(.3,p.r+p.gr*k).toFixed(1)); p.el.setAttribute('opacity',(p.o*(1-k)).toFixed(2)); }
+    for (let i=ripples.length-1;i>=0;i--){ const r=ripples[i]; r.t+=dt/(r.ring?.45:.52);
+      if (r.t>=1){ r.el.remove(); ripples.splice(i,1); if(!r.ring) ring(r.b); continue; }
+      const e=r.t*r.t*(3-2*r.t);
+      if (r.ring){ r.el.setAttribute('cx',r.a[0]); r.el.setAttribute('cy',r.a[1]); r.el.setAttribute('r',(4+18*r.t).toFixed(1)); r.el.setAttribute('opacity',(1-r.t).toFixed(2)); }
+      else { r.el.setAttribute('cx',(r.a[0]+(r.b[0]-r.a[0])*e).toFixed(1)); r.el.setAttribute('cy',(r.a[1]+(r.b[1]-r.a[1])*e).toFixed(1)); } }
+  } else {
+    setPose(over?KNEEL:{y:1.5,tilt:2,head:0,tF:-14,kF:6,tB:14,kB:10,aF:12,aB:-12,eF:-10,eB:-18});
+    eye.setAttribute('opacity',over?.08:1);
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ---------- boot ---------- */
+function start(saved){
+  state = saved && saved.parts && saved.parts.eyes!=null && saved.phase && saved.lv ? saved : fresh();
+  fit();
+  renderDesk(); render();
+  requestAnimationFrame(t=>{ last=t; requestAnimationFrame(frame); });
+}
+addEventListener('resize',()=>{ fit(); render(); });
+if (window.ResizeObserver) new ResizeObserver(()=>{ fit(); render(); }).observe($('stage'));
+window.claude?.hot?.snapshot?.(()=>state);
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+})();
+</script>
+</body>
+</html>
